@@ -65,6 +65,25 @@ psycopg2-binary==2.9.9
 pgvector==0.3.5
 ```
 
+```txt
+fastapi
+uvicorn[standard]
+pydantic
+pydantic-settings
+python-dotenv
+duckdb
+sentence-transformers
+httpx
+pytest
+pypdf
+python-multipart
+
+# hanya dipakai kalau VECTOR_BACKEND=pgvector
+sqlalchemy
+psycopg2-binary
+pgvector
+```
+
 ```bash
 pip install -r requirements.txt
 ```
