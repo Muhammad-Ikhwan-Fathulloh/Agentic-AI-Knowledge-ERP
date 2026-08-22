@@ -41,6 +41,7 @@ knowledge-agent-api/
 mkdir knowledge-agent-api && cd knowledge-agent-api
 python3 -m venv .venv
 source .venv/bin/activate        # Windows: .venv\Scripts\activate
+.venv\Scripts\activate
 ```
 
 ## Step 2 — `requirements.txt`
