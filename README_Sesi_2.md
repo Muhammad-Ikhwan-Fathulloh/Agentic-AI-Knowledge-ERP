@@ -26,9 +26,11 @@ knowledge-agent-api/
 │   ├── config.py               # baca .env
 │   ├── database.py             # koneksi DuckDB / Postgres+pgvector
 │   ├── schemas.py               # Pydantic models
-│   └── embeddings.py           # load sentence-transformers
+│   ├── embeddings.py           # load sentence-transformers
+│   └── pdf_ingest.py            # extract & chunk teks dari PDF
 └── tests/
-    └── test_documents.py       # pytest + TestClient
+    ├── test_documents.py       # pytest + TestClient
+    └── test_pdf_upload.py       # pytest untuk endpoint upload PDF
 ```
 
 ---
@@ -53,6 +55,8 @@ duckdb==1.1.1
 sentence-transformers==3.1.1
 httpx==0.27.2
 pytest==8.3.3
+pypdf==5.0.1
+python-multipart==0.0.12   # wajib, dipakai FastAPI untuk terima file upload (UploadFile)
 
 # hanya dipakai kalau VECTOR_BACKEND=pgvector
 sqlalchemy==2.0.35
@@ -341,7 +345,100 @@ def bulk_create(docs: List[DocIn]):
     return {"inserted": len(docs)}
 ```
 
-## Step 8 — (Opsional) Docker Compose untuk PostgreSQL + pgvector
+## Step 8 — Upload PDF sebagai Dokumen
+
+Selain `POST /documents` (teks manual) dan `/documents/bulk` (array JSON), tambahkan endpoint upload file PDF: teks di-extract per halaman, tiap halaman/chunk di-*embed* dan disimpan sebagai baris `documents` sendiri — jadi langsung bisa dicari lewat `/documents/search`.
+
+### 8a. Modul extract & chunk PDF
+
+```python
+# app/pdf_ingest.py
+from pypdf import PdfReader
+import io
+
+def extract_chunks_from_pdf(file_bytes: bytes, chunk_size: int = 1000, overlap: int = 150) -> list[str]:
+    """
+    Baca PDF dari bytes, gabungkan semua teks, lalu pecah jadi chunk
+    ber-overlap (biar konteks antar-chunk tidak putus, sama seperti
+    strategi chunking di Sesi 1).
+    """
+    reader = PdfReader(io.BytesIO(file_bytes))
+    full_text = "\n".join((page.extract_text() or "") for page in reader.pages)
+    full_text = full_text.strip()
+
+    if not full_text:
+        return []
+
+    chunks = []
+    start = 0
+    while start < len(full_text):
+        end = start + chunk_size
+        chunks.append(full_text[start:end])
+        start = end - overlap  # mundur sedikit supaya overlap
+    return chunks
+```
+
+### 8b. Endpoint `POST /documents/upload-pdf`
+
+```python
+# app/main.py (tambahan)
+from fastapi import UploadFile, File
+from app.pdf_ingest import extract_chunks_from_pdf
+
+@app.post("/documents/upload-pdf")
+async def upload_pdf(file: UploadFile = File(...)):
+    if file.content_type != "application/pdf":
+        raise HTTPException(400, "File harus berformat PDF")
+
+    file_bytes = await file.read()
+    chunks = extract_chunks_from_pdf(file_bytes)
+
+    if not chunks:
+        raise HTTPException(422, "Tidak ada teks yang bisa diekstrak dari PDF ini (kemungkinan hasil scan/gambar)")
+
+    inserted_ids = []
+    for i, chunk in enumerate(chunks):
+        doc_id = store.insert(source=f"{file.filename}#chunk{i}", content=chunk)
+        inserted_ids.append(doc_id)
+
+    return {
+        "filename": file.filename,
+        "chunks_inserted": len(inserted_ids),
+        "ids": inserted_ids,
+    }
+```
+
+> Kalau PDF-nya hasil scan (gambar, bukan teks selectable), `extract_text()` akan balikin string kosong per halaman — di kasus itu perlu OCR (di luar cakupan panduan ini; lihat skill `pdf-reading` kalau butuh OCR).
+
+### 8c. Uji upload PDF lewat curl
+
+```bash
+curl -X POST http://localhost:8000/documents/upload-pdf \
+  -F "file=@/path/ke/dokumen.pdf"
+```
+
+Atau lewat Swagger UI di `http://localhost:8000/docs` — endpoint `/documents/upload-pdf` otomatis muncul dengan tombol pilih file, karena FastAPI generate form upload dari tipe `UploadFile`.
+
+### 8d. (Opsional) Uji dengan pytest
+
+```python
+# tests/test_pdf_upload.py
+from fastapi.testclient import TestClient
+from app.main import app
+
+client = TestClient(app)
+
+def test_upload_pdf():
+    with open("tests/sample.pdf", "rb") as f:
+        resp = client.post(
+            "/documents/upload-pdf",
+            files={"file": ("sample.pdf", f, "application/pdf")},
+        )
+    assert resp.status_code == 200
+    assert resp.json()["chunks_inserted"] > 0
+```
+
+## Step 9 — (Opsional) Docker Compose untuk PostgreSQL + pgvector
 
 Kalau `VECTOR_BACKEND=pgvector`, jalankan Postgres lokal via image resmi pgvector (sudah include extension, tinggal `CREATE EXTENSION`). Ditambah `pgweb` sebagai UI ringan buat inspect tabel `documents` dari browser tanpa perlu psql.
 
@@ -393,7 +490,7 @@ Setelah `db` berstatus `healthy`, dua service siap dipakai:
 
 > Karena `pgweb` punya `depends_on: db: condition: service_healthy`, dia otomatis menunggu Postgres benar-benar siap (`pg_isready`) sebelum jalan — tidak perlu retry manual.
 
-## Step 9 — Menjalankan Server dengan Uvicorn
+## Step 10 — Menjalankan Server dengan Uvicorn
 
 ```bash
 # backend DuckDB (default, tidak perlu Docker)
@@ -406,7 +503,7 @@ uvicorn app.main:app --reload --port 8000
 
 Server jalan di `http://localhost:8000`, dokumentasi otomatis (Swagger UI) tersedia di `http://localhost:8000/docs`.
 
-## Step 10 — Uji API dari Terminal
+## Step 11 — Uji API dari Terminal
 
 ```bash
 # create
@@ -423,7 +520,7 @@ curl -X POST http://localhost:8000/documents/bulk \
   -d '[{"source":"a.txt","content":"Isi A"},{"source":"b.txt","content":"Isi B"}]'
 ```
 
-## Step 11 — Uji Otomatis dengan `pytest` (pengganti `TestClient` manual di Colab)
+## Step 12 — Uji Otomatis dengan `pytest` (pengganti `TestClient` manual di Colab)
 
 ```python
 # tests/test_documents.py
@@ -459,6 +556,7 @@ pytest tests/ -v
 | Portabilitas | Satu file `.duckdb`, gampang dipindah | Butuh dump/restore Postgres |
 
 ## Ringkasan
-- Struktur project dipecah dari satu notebook jadi `app/` modular: `config.py`, `embeddings.py`, `database.py`, `schemas.py`, `main.py`.
+- Struktur project dipecah dari satu notebook jadi `app/` modular: `config.py`, `embeddings.py`, `database.py`, `schemas.py`, `pdf_ingest.py`, `main.py`.
 - Layer `DocStore` membuat endpoint CRUD **backend-agnostic** — tinggal ganti `VECTOR_BACKEND` di `.env` untuk pindah dari DuckDB ke pgvector tanpa ubah `main.py`.
 - Endpoint dan perilaku (termasuk solusi TODO 1 `/documents/bulk`) tetap identik dengan `Sesi_2_Knowledge_Agent_CRUD_API.ipynb`, jadi tetap bisa dipakai sebagai referensi pola *tool* untuk agent ReAct di Sesi 3–4 — kali ini lewat `http://localhost:8000` sungguhan, bukan `TestClient` di memori Colab.
+- Sumber dokumen sekarang ada tiga jalur: teks manual (`POST /documents`), array JSON (`POST /documents/bulk`), dan file PDF (`POST /documents/upload-pdf`) — ketiganya berakhir lewat fungsi `store.insert()` yang sama, jadi tetap konsisten di-embed dan bisa langsung dicari lewat `/documents/search`.
