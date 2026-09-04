@@ -602,3 +602,76 @@ project/
 ├── docker-compose.yml
 └── README.md
 ```
+
+---
+
+# LAMPIRAN A — Implementasi Produksi Riil (Folder per-Sesi)
+
+Untuk melengkapi notebook, setiap sesi (mulai Sesi 2) sekarang punya **folder kode standalone production-ready**
+dengan pola struktur **identik** (mirip `Sesi_2/` yang sudah ada), diadaptasi dari pola
+[End-to-End-LLM-Serving](https://github.com/Muhammad-Ikhwan-Fathulloh/End-to-End-LLM-Serving).
+
+## Konsistensi Struktur tiap Folder Sesi
+```
+Sesi_<Nama>/
+├── app/
+│   ├── __init__.py       (kosong)
+│   ├── config.py         pydantic-settings → baca .env + default masuk akal
+│   ├── schemas.py        Pydantic BaseModel request/response
+│   ├── database.py       (jika perlu) DuckDB connection, schema, seed data, business logic
+│   ├── llm.py            (jika pakai LLM) lifespan: llama-server lifecycle + llm_complete wrapper
+│   ├── tools.py / react.py / planner.py / generators.py / router.py / dispatch.py   (logic bisnis spesifik sesi)
+│   └── main.py           FastAPI entrypoint: CORS, /health, endpoint bisnis
+├── tests/
+│   └── test_*.py         Unit test yang TIDAK bergantung LLM nyala (parser, summary, fallback)
+├── .env                  default port, duckdb path, llama config, dependency URL
+├── .gitignore            .venv, .duckdb, .log, __pycache__
+├── requirements.txt      fastapi + uvicorn + pydantic + duckdb + sentence-transformers + httpx + pytest
+├── run.bat               Auto venv → install → spawn dependency service → uvicorn app.main:app
+└── README.md             Ringkasan, fitur, cara run, daftar endpoint, struktur file, uji manual
+```
+
+## Daftar Folder Implementasi + Port + Mapping End-to-End LLM Serving
+
+| Sesi | Folder Implementasi | Port App | Port LLM | Pola yang Diadopsi dari E2E LLM Serving |
+|---|---|---|---|---|
+| 2 | `Sesi_2/` (sebelumnya sudah ada) | **8001** | - | REST API + Pydantic Validator (pola dasar semua service) |
+| 3 | `Sesi_3_Knowledge_Agent_ReAct/` | **8002** | 8080 | **P1 Basic LLM**: `lifespan` start/stop llama-server, health check, `/completion` wrapper |
+| 4 | `Sesi_4_Knowledge_Agent_Planner/` | **8003** | 8081 | Pola `P1 + Structured JSON Prompting` + retry mechanism |
+| 5 | `Sesi_5_Knowledge_ERP_CRUD/` | **8005** | - | DuckDB embedded schema + validasi stok (business logic di layer database.py) |
+| 6 | `Sesi_6_Knowledge_ERP_ReAct/` | **8006** | 8082 | Tool Registry HTTP Client (mirip cara P3/P4 panggil internal API) |
+| 7 | `Sesi_7_Knowledge_ERP_Generate/` | **8007** | 8083 | Prompt Engineering laporan naratif (P1 pola generation + template prompt ketat) |
+| 8 | `Sesi_8_Orchestrator/` | **8000** | 8088 | **P3 Semantic Cache** (DuckDB VSS menggantikan pgvector) + **P4 Feedback Loop** (interactions table + like/dislike) + Router LLM + Dispatch Agent |
+
+## Cara Menjalankan Full Stack (End to End)
+
+**Cukup 1 perintah**:
+```cmd
+cd Sesi_8_Orchestrator
+run.bat
+```
+
+Yang dijalankan script secara otomatis:
+1. `Sesi_2 (8001)` — Knowledge CRUD + vector search
+2. `Sesi_5 (8005)` — ERP CRUD + validasi stok
+3. `Sesi_7 (8007)` — Narrative Report Generator via Qwen
+4. `Sesi_8 (8000)` — Orchestrator utama (user pakai ini): Router → Cache → Dispatch → Feedback
+
+Swagger UI endpoint utama: **`http://localhost:8000/docs`**
+- `POST /agent/orchestrate` — kirim query, dapat jawaban end-to-end.
+- `POST /agent/feedback` — `{interaction_id, is_like: true/false}`
+- `GET /agent/stats` — total interaksi, likes, cache entries.
+
+---
+
+# LAMPIRAN B — Checklist Evaluasi Kualitas (Rubrik Penilaian)
+
+| Komponen | Bobot | 1 (Kurang) | 3 (Cukup) | 5 (Sangat Baik) |
+|---|---|---|---|---|
+| **Domain Routing Accuracy** (10 skenario) | 25% | < 6/10 benar | 7–8/10 benar | 9–10/10 benar (fallback rule tetap akurat walau LLM gagal) |
+| **Semantic Cache Hit Rate** | 10% | < 10% | 30–50% | > 50% untuk FAQ / query berulang |
+| **ReAct Step Efficiency** | 15% | > 5 langkah / gagal FINISH | 3–4 langkah | ≤ 2 langkah untuk task sederhana |
+| **Planner JSON Validity** | 10% | Sering gagal parse | Retry 1x lolos | Selalu valid tanpa retry |
+| **ERP Create Order Guardrail** | 15% | Langsung eksekusi tanpa confirm | Konfirmasi tapi tidak log | Human-in-the-loop + log audit jelas |
+| **Narrative Report Quality** | 15% | Hanya ulang angka | 3 paragraf bagus | 4 paragraf + rekomendasi actionable + bahasa formal |
+| **Code Structure (app/config/tests)** | 10% | Semua logic di main.py | 2–3 modul terpisah | ≥ 5 modul: config/schemas/db/tools/router/dispatch, tests lulus pytest |

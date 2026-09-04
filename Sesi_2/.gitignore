@@ -1,3 +1,13 @@
 .venv
-knowledge.duckdb
-knowledge.duckdb.wal
+__pycache__
+*.pyc
+*.pyo
+*.duckdb
+*.duckdb.wal
+*.log
+.idea
+.vscode
+.DS_Store
+*.egg-info
+dist
+build
