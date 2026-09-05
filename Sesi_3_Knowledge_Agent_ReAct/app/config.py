@@ -20,7 +20,7 @@ class Settings(BaseSettings):
 
     llm_model_gguf: str = "qwen2.5-0.5b-instruct-q4_k_m.gguf"
     llama_port: int = 8080
-    llama_ctx: int = 2048
+    llama_ctx: int = 4048
     llama_ngl: int = 0
     llama_threads: int = 3
     llama_ready_timeout: int = 90
