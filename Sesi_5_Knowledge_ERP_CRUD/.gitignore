@@ -1,7 +1,47 @@
-.venv
-__pycache__
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Python cache
+__pycache__/
 *.pyc
-*.log
+*.pyo
+*.pyd
+
+# Distribution / packaging
+dist/
+build/
+*.egg-info/
+*.egg
+
+# DuckDB data files
 *.duckdb
 *.duckdb.wal
+
+# Logs
+*.log
+
+# Model files (besar, download manual)
+*.gguf
+*.bin
+*.safetensors
+
+# Environment variables
 .env.local
+.env.*.local
+
+# IDE
+.idea/
+.vscode/
+*.suo
+*.user
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Test cache
+.pytest_cache/
+.coverage
+htmlcov/

@@ -42,6 +42,9 @@ llama_server.log
 .DS_Store
 Thumbs.db
 
+# Jupyter checkpoints
+.ipynb_checkpoints/
+
 # Test cache
 .pytest_cache/
 .coverage

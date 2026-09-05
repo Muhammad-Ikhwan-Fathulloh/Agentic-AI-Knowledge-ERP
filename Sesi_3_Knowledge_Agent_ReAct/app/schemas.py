@@ -2,6 +2,25 @@ from pydantic import BaseModel
 from typing import List, Optional
 
 
+# ---------------------------------------------------------------------------
+# Knowledge document schemas (sama dengan Sesi 2)
+# ---------------------------------------------------------------------------
+class DocIn(BaseModel):
+    source: str
+    content: str
+
+
+class DocOut(DocIn):
+    id: str
+
+
+class DocSearchResult(DocOut):
+    score: float
+
+
+# ---------------------------------------------------------------------------
+# ReAct agent schemas
+# ---------------------------------------------------------------------------
 class ReActRequest(BaseModel):
     query: str
     max_steps: int = 4
