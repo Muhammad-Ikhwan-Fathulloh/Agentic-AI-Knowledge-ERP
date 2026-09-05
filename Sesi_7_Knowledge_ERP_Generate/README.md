@@ -21,6 +21,11 @@ run.bat
 ```
 (Otomatis spawning Sesi 5 + Sesi 7)
 
+## Download Model Qwen
+📥 **[Download model GGUF dari Google Drive](https://drive.google.com/drive/folders/16eYzbAx7KOnawHqmnMD6tjshSSCmp6sX?usp=sharing)**
+
+Setelah download, letakkan file `.gguf` di folder `../End-to-End LLM Serving/models/`.
+
 ## Struktur
 ```
 Sesi_7_Knowledge_ERP_Generate/

@@ -11,6 +11,11 @@ Pola ini lebih **cepat** dan stabil untuk FAQ / task satu-langkah, tapi kurang f
 - Sesi 2 Knowledge CRUD API (Port 8001) berjalan.
 - Model GGUF Qwen + binary llama-server ada di folder `../End-to-End LLM Serving/`.
 
+## Download Model Qwen
+📥 **[Download model GGUF dari Google Drive](https://drive.google.com/drive/folders/16eYzbAx7KOnawHqmnMD6tjshSSCmp6sX?usp=sharing)**
+
+Setelah download, letakkan file `.gguf` di folder `../End-to-End LLM Serving/models/`.
+
 ## Cara Run
 ```cmd
 run.bat

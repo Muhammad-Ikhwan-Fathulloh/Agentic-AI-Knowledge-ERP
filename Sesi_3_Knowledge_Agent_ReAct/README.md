@@ -12,6 +12,11 @@ Mengimplementasikan **loop ReAct (Reason-Act)** manual dengan LLM lokal Qwen. Ag
 - Folder `../End-to-End LLM Serving/models/` berisi file GGUF Qwen (contoh: `qwen2.5-0.5b-instruct-q4_k_m.gguf`).
 - Binary `llama-server` ada di `../End-to-End LLM Serving/backend/bin/`.
 
+## Download Model Qwen
+📥 **[Download model GGUF dari Google Drive](https://drive.google.com/drive/folders/16eYzbAx7KOnawHqmnMD6tjshSSCmp6sX?usp=sharing)**
+
+Setelah download, letakkan file `.gguf` di folder `../End-to-End LLM Serving/models/`.
+
 ## Cara Run
 ```cmd
 run.bat
