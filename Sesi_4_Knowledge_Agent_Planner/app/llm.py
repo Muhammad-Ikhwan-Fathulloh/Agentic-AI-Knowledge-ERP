@@ -11,8 +11,8 @@ from app.config import settings
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 ROOT_DIR = os.path.dirname(os.path.dirname(BASE_DIR))
-BIN_DIR = os.path.join(ROOT_DIR, "End-to-End LLM Serving", "backend", "bin")
-MODELS_DIR = os.path.join(ROOT_DIR, "End-to-End LLM Serving", "models")
+BIN_DIR = os.path.join(ROOT_DIR, "Agentic-AI-Knowledge-ERP", "Sesi_4_Knowledge_Agent_Planner", "bin")
+MODELS_DIR = os.path.join(ROOT_DIR, "Agentic-AI-Knowledge-ERP", "models")
 
 EXE_NAME = "llama-server.exe" if platform.system() == "Windows" else "llama-server"
 LLAMA_SERVER_EXE = os.path.join(BIN_DIR, EXE_NAME)

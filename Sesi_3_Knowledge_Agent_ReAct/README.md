@@ -301,13 +301,13 @@ Contoh: 2 topik → minimal 3 langkah (2 search + 1 FINISH). Kalau LLM FINISH di
 
 FINISH adalah *aksi terpenting* — salah FINISH berarti jawaban tidak berguna. Ada **5 aturan ketat** ([react.py#L26-L31](file:///d:/Agentic-AI-Knowledge-ERP/Sesi_3_Knowledge_Agent_ReAct/app/react.py#L26-L31)):
 
-| Aturan | Alasan |
-|---|---|
-| **FINISH hanya setelah SEMUA topik dicari** | Mencegah jawaban setengah matang untuk pertanyaan gabungan |
-| **Action Input TIDAK BOLEH kosong / placeholder** | `Selesai` bukan jawaban. User butuh informasi nyata |
-| **Action Input WAJIB jawaban lengkap + terstruktur** | Bukan nyalin Observation mentah, tapi *dirangkum* menjadi kalimat siap baca |
-| **Jika info kurang → search lagi, JANGAN FINISH** | Ganti query / lebih spesifik, beranikan lakukan extra step |
-| **Rumus min langkah = (N topik × search) + tambahan** | Guardrail kuantitatif untuk deteksi dini |
+| Aturan                                                | Alasan                                                                      |
+| ----------------------------------------------------- | --------------------------------------------------------------------------- |
+| **FINISH hanya setelah SEMUA topik dicari**           | Mencegah jawaban setengah matang untuk pertanyaan gabungan                  |
+| **Action Input TIDAK BOLEH kosong / placeholder**     | `Selesai` bukan jawaban. User butuh informasi nyata                         |
+| **Action Input WAJIB jawaban lengkap + terstruktur**  | Bukan nyalin Observation mentah, tapi *dirangkum* menjadi kalimat siap baca |
+| **Jika info kurang → search lagi, JANGAN FINISH**     | Ganti query / lebih spesifik, beranikan lakukan extra step                  |
+| **Rumus min langkah = (N topik × search) + tambahan** | Guardrail kuantitatif untuk deteksi dini                                    |
 
 ### Apa Bedanya "Mengarang Informasi" vs "Merangkum Observation"?
 Ini batasan yang sering membingungkan:
@@ -359,16 +359,16 @@ Perhatikan kualitas di langkah 3:
 
 ## Peran Tiap File di `app/`
 
-| File | Tanggung Jawab | Detail Penting |
-|---|---|---|
-| [config.py](file:///d:/Agentic-AI-Knowledge-ERP/Sesi_3_Knowledge_Agent_ReAct/app/config.py) | Settings (pydantic-settings) | `USE_LOCAL_DB`, port LLM, path DuckDB, model GGUF name |
-| [schemas.py](file:///d:/Agentic-AI-Knowledge-ERP/Sesi_3_Knowledge_Agent_ReAct/app/schemas.py) | Pydantic models | `ReActRequest`, `ReActResponse`, `StepLog` (trace per langkah) |
-| [embeddings.py](file:///d:/Agentic-AI-Knowledge-ERP/Sesi_3_Knowledge_Agent_ReAct/app/embeddings.py) | SentenceTransformer wrapper | `encode()` → list[float] 384-dim (all-MiniLM-L6-v2) |
-| [database.py](file:///d:/Agentic-AI-Knowledge-ERP/Sesi_3_Knowledge_Agent_ReAct/app/database.py) | DuckDB store + seed | `DocStore`: CRUD + VSS search + SEED_DATA (FAQ/SOP otomatis) |
-| [llm.py](file:///d:/Agentic-AI-Knowledge-ERP/Sesi_3_Knowledge_Agent_ReAct/app/llm.py) | llama-server lifecycle | `lifespan` + `llm_complete()` wrapper, `/health` probe |
-| [tools.py](file:///d:/Agentic-AI-Knowledge-ERP/Sesi_3_Knowledge_Agent_ReAct/app/tools.py) | Tool registry dual-mode | `USE_LOCAL_DB=true` → DuckDB langsung; `false` → HTTP API Sesi 2 |
-| [react.py](file:///d:/Agentic-AI-Knowledge-ERP/Sesi_3_Knowledge_Agent_ReAct/app/react.py) | **Core ReAct Loop** | `REACT_SYSTEM`, `_parse_step()`, `_is_placeholder_answer()`, `react_loop()` |
-| [main.py](file:///d:/Agentic-AI-Knowledge-ERP/Sesi_3_Knowledge_Agent_ReAct/app/main.py) | FastAPI entrypoint | `/agent/chat` (ReAct) + `/documents/*` (CRUD, kompatibel Sesi 2) |
+| File                                                                                                | Tanggung Jawab               | Detail Penting                                                              |
+| --------------------------------------------------------------------------------------------------- | ---------------------------- | --------------------------------------------------------------------------- |
+| [config.py](file:///d:/Agentic-AI-Knowledge-ERP/Sesi_3_Knowledge_Agent_ReAct/app/config.py)         | Settings (pydantic-settings) | `USE_LOCAL_DB`, port LLM, path DuckDB, model GGUF name                      |
+| [schemas.py](file:///d:/Agentic-AI-Knowledge-ERP/Sesi_3_Knowledge_Agent_ReAct/app/schemas.py)       | Pydantic models              | `ReActRequest`, `ReActResponse`, `StepLog` (trace per langkah)              |
+| [embeddings.py](file:///d:/Agentic-AI-Knowledge-ERP/Sesi_3_Knowledge_Agent_ReAct/app/embeddings.py) | SentenceTransformer wrapper  | `encode()` → list[float] 384-dim (all-MiniLM-L6-v2)                         |
+| [database.py](file:///d:/Agentic-AI-Knowledge-ERP/Sesi_3_Knowledge_Agent_ReAct/app/database.py)     | DuckDB store + seed          | `DocStore`: CRUD + VSS search + SEED_DATA (FAQ/SOP otomatis)                |
+| [llm.py](file:///d:/Agentic-AI-Knowledge-ERP/Sesi_3_Knowledge_Agent_ReAct/app/llm.py)               | llama-server lifecycle       | `lifespan` + `llm_complete()` wrapper, `/health` probe                      |
+| [tools.py](file:///d:/Agentic-AI-Knowledge-ERP/Sesi_3_Knowledge_Agent_ReAct/app/tools.py)           | Tool registry dual-mode      | `USE_LOCAL_DB=true` → DuckDB langsung; `false` → HTTP API Sesi 2            |
+| [react.py](file:///d:/Agentic-AI-Knowledge-ERP/Sesi_3_Knowledge_Agent_ReAct/app/react.py)           | **Core ReAct Loop**          | `REACT_SYSTEM`, `_parse_step()`, `_is_placeholder_answer()`, `react_loop()` |
+| [main.py](file:///d:/Agentic-AI-Knowledge-ERP/Sesi_3_Knowledge_Agent_ReAct/app/main.py)             | FastAPI entrypoint           | `/agent/chat` (ReAct) + `/documents/*` (CRUD, kompatibel Sesi 2)            |
 
 ---
 
@@ -389,10 +389,10 @@ Data FAQ & SOP dari Sesi 2 sudah di-embed langsung ke Sesi 3:
 - Data di-seed otomatis ke `knowledge.duckdb` saat pertama kali startup
 
 Mode sumber data bisa dikontrol via `.env`:
-| `USE_LOCAL_DB` | Sumber data |
-|---|---|
+| `USE_LOCAL_DB`   | Sumber data                                       |
+| ---------------- | ------------------------------------------------- |
 | `true` (default) | DuckDB lokal Sesi 3 — mandiri, tidak butuh Sesi 2 |
-| `false` | REST API Sesi 2 port 8001 — butuh Sesi 2 jalan |
+| `false`          | REST API Sesi 2 port 8001 — butuh Sesi 2 jalan    |
 
 ## Cara Run
 ```cmd
@@ -407,10 +407,10 @@ uvicorn app.main:app --port 8002 --reload
 ```
 
 ## Endpoint
-| Endpoint | Method | Deskripsi |
-|---|---|---|
-| `GET /health` | GET | Cek app, llama-server, dan koneksi Knowledge API |
-| `POST /agent/chat` | POST | Input `{query, max_steps, temperature}` → jawaban ReAct + trace langkah |
+| Endpoint           | Method | Deskripsi                                                               |
+| ------------------ | ------ | ----------------------------------------------------------------------- |
+| `GET /health`      | GET    | Cek app, llama-server, dan koneksi Knowledge API                        |
+| `POST /agent/chat` | POST   | Input `{query, max_steps, temperature}` → jawaban ReAct + trace langkah |
 
 ## Struktur File
 ```
@@ -434,3 +434,400 @@ Sesi_3_Knowledge_Agent_ReAct/
 1. Buka `http://localhost:8002/docs`.
 2. Coba `POST /agent/chat` dengan query: `Apa kebijakan refund produk?`.
 3. Perhatikan field `steps` — setiap step menunjukkan trace Thought/Action/Observation.
+
+---
+
+## 🛠️ Hands-On: Cara Membuat Proyek Ini dari Nol
+
+### Prasyarat Wajib Sebelum Mulai
+
+1. **Download model GGUF Qwen** dari link di README → letakkan di folder `../models/` (satu level di atas Sesi_3)
+2. **Binary `llama-server`** tersedia di `../bin/llama-server.exe`
+3. Sesi_2 sudah pernah dijalankan sekali (agar `knowledge.duckdb` tersedia, atau biarkan auto-seed dari Sesi 3 sendiri)
+
+> Kalau model dan bin belum ada, server tetap naik tapi endpoint `/agent/chat` akan error — itu normal, selesaikan download lebih dulu.
+
+### Langkah 1 — Setup Folder & Environment
+
+```cmd
+mkdir Sesi_3_Knowledge_Agent_ReAct
+cd Sesi_3_Knowledge_Agent_ReAct
+mkdir app tests bin
+python -m venv .venv
+.venv\Scripts\activate
+pip install -r requirements.txt
+```
+
+### Langkah 2 — Buat `.env`
+
+```env
+VECTOR_BACKEND=duckdb
+EMBED_MODEL=all-MiniLM-L6-v2
+EMBED_DIM=384
+DUCKDB_PATH=knowledge.duckdb
+KNOWLEDGE_API_BASE=http://127.0.0.1:8001
+
+LLM_MODEL_GGUF=qwen2.5-0.5b-instruct-q4_k_m.gguf
+LLAMA_PORT=8080
+LLAMA_CTX=4048
+LLAMA_NGL=0
+LLAMA_THREADS=3
+LLAMA_READY_TIMEOUT=90
+LLAMA_BASE_URL=http://127.0.0.1:8080
+
+APP_PORT=8002
+```
+
+### Langkah 3 — Buat `app/config.py`
+
+```python
+from pydantic_settings import BaseSettings
+import os
+
+class Settings(BaseSettings):
+    vector_backend: str = "duckdb"
+    embed_model: str = "all-MiniLM-L6-v2"
+    embed_dim: int = 384
+    duckdb_path: str = "knowledge.duckdb"
+    knowledge_api_base: str = "http://127.0.0.1:8001"
+
+    llm_model_gguf: str = "qwen2.5-0.5b-instruct-q4_k_m.gguf"
+    llama_port: int = 8080
+    llama_ctx: int = 4048
+    llama_ngl: int = 0
+    llama_threads: int = 3
+    llama_ready_timeout: int = 90
+    llama_base_url: str = "http://127.0.0.1:8080"
+
+    app_port: int = 8002
+
+    class Config:
+        env_file = ".env"
+
+settings = Settings()
+```
+
+### Langkah 4 — Buat `app/schemas.py`
+
+```python
+from pydantic import BaseModel
+from typing import Optional
+
+class StepLog(BaseModel):
+    step: int
+    thought: str
+    action: str
+    action_input: str
+    observation: str
+
+class ReActRequest(BaseModel):
+    query: str
+    max_steps: int = 8
+    temperature: float = 0.3
+
+class ReActResponse(BaseModel):
+    query: str
+    final_answer: str
+    total_steps: int
+    steps: list[StepLog]
+```
+
+### Langkah 5 — Buat `app/llm.py`
+
+Modul untuk mengelola siklus hidup llama-server dan wrapper `llm_complete`:
+
+```python
+import asyncio, httpx, subprocess, time, os
+from contextlib import asynccontextmanager
+from .config import settings
+
+_proc = None
+
+def _find_llama_server():
+    base = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    return os.path.join(base, "bin", "llama-server.exe")
+
+def _find_model():
+    base = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    return os.path.join(base, "models", settings.llm_model_gguf)
+
+async def start_llama():
+    global _proc
+    server = _find_llama_server()
+    model  = _find_model()
+    if not os.path.exists(model):
+        print(f"[WARN] Model tidak ditemukan: {model}")
+        return
+    _proc = subprocess.Popen([
+        server, "-m", model,
+        "--port", str(settings.llama_port),
+        "--ctx-size", str(settings.llama_ctx),
+        "--threads", str(settings.llama_threads),
+        "-ngl", str(settings.llama_ngl),
+    ])
+    # Tunggu server siap
+    deadline = time.time() + settings.llama_ready_timeout
+    while time.time() < deadline:
+        try:
+            httpx.get(f"{settings.llama_base_url}/health", timeout=2)
+            print("[OK] llama-server siap")
+            return
+        except Exception:
+            await asyncio.sleep(2)
+    print("[WARN] llama-server timeout — coba lanjut tanpa LLM")
+
+def stop_llama():
+    if _proc:
+        _proc.terminate()
+
+async def llm_complete(prompt: str, max_tokens=400,
+                       temperature=0.3, stop=None) -> str:
+    payload = {
+        "prompt": prompt,
+        "n_predict": max_tokens,
+        "temperature": temperature,
+        "stop": stop or [],
+    }
+    async with httpx.AsyncClient(timeout=60) as c:
+        r = await c.post(f"{settings.llama_base_url}/completion", json=payload)
+        r.raise_for_status()
+        return r.json()["content"].strip()
+```
+
+### Langkah 6 — Buat `app/react.py` (Inti ReAct Loop)
+
+```python
+import re
+from .llm import llm_complete
+from .tools import ToolRegistry
+from .schemas import StepLog
+
+REACT_SYSTEM = """Kamu adalah agent Knowledge yang menjawab pertanyaan memakai tool.
+Gunakan tool jika informasi yang dibutuhkan tidak ada di ingatanmu.
+
+Tool yang TERSEDIA:
+- search_knowledge[query]: mencari dokumen relevan di knowledge base.
+- list_documents[limit]: melihat daftar dokumen yang tersimpan.
+- create_document[{"source":"...","content":"..."}]: menyimpan dokumen baru.
+
+FORMAT WAJIB setiap langkah:
+Thought: <jelaskan kenapa kamu butuh tool / apa yang kamu pikirkan>
+Action: <nama_tool, WAJIB salah satu dari: search_knowledge, list_documents, create_document, atau FINISH>
+Action Input: <parameter tool, atau JAWABAN FINAL jika Action=FINISH>
+
+Jika Action bukan FINISH, Observation akan diberikan lalu kamu lanjutkan langkah berikutnya.
+
+ATURAN FINISH:
+- FINISH hanya setelah SEMUA topik dicari.
+- Action Input TIDAK BOLEH kosong atau berisi "Selesai" / placeholder.
+- Action Input WAJIB jawaban lengkap terstruktur.
+"""
+
+PLACEHOLDER_PATTERNS = [
+    r"^selesai\.?$", r"^jawaban final\.?$", r"^\(jawaban kosong\)$",
+    r"^-$", r"^\.+$", r"^(oke|ok)\.?$"
+]
+
+def _is_placeholder(text: str) -> bool:
+    t = text.strip().lower()
+    if len(t) < 10:
+        return True
+    return any(re.match(p, t) for p in PLACEHOLDER_PATTERNS)
+
+def _parse_step(output: str):
+    t  = re.search(r"Thought:\s*(.+?)(?:\n|$)", output)
+    a  = re.search(r"Action:\s*(\w+)", output)
+    ai = re.search(r"Action Input:\s*(.+)", output, re.DOTALL)
+    return (
+        t.group(1).strip()  if t  else "",
+        a.group(1).strip()  if a  else "",
+        ai.group(1).strip() if ai else "",
+    )
+
+async def react_loop(query: str, max_steps=8, temperature=0.3):
+    tools = ToolRegistry()
+    history = REACT_SYSTEM + f"\nPertanyaan user: {query}\n"
+    steps = []
+    finish_retry_used = False
+    valid_actions = {"search_knowledge", "list_documents", "create_document", "finish"}
+
+    for step_num in range(1, max_steps + 1):
+        raw = await llm_complete(
+            history, max_tokens=400, temperature=temperature,
+            stop=["Observation:", "Pertanyaan user:"]
+        )
+        thought, action, action_input = _parse_step(raw)
+        log = StepLog(step=step_num, thought=thought, action=action,
+                      action_input=action_input, observation="")
+
+        if not action or action.lower() not in valid_actions:
+            log.observation = "Format tidak valid. Action harus salah satu tool yang tersedia atau FINISH."
+            steps.append(log)
+            history += raw + f"\nObservation: {log.observation}\n"
+            continue
+
+        if action.upper() == "FINISH":
+            if _is_placeholder(action_input) and not finish_retry_used:
+                finish_retry_used = True
+                log.observation = "FINISH ditolak: jawaban kosong/placeholder. Pastikan semua topik sudah dicari."
+                steps.append(log)
+                history += raw + f"\nObservation: {log.observation}\n"
+                continue
+            steps.append(log)
+            return action_input, steps
+
+        # Jalankan tool
+        observation = tools.call(action, action_input)
+        log.observation = observation
+        steps.append(log)
+        history += raw + f"\nObservation: {observation}\n"
+
+    final = steps[-1].observation if steps else "(tidak ada jawaban)"
+    return f"[Melebihi batas langkah] Jawaban sementara: {final}", steps
+```
+
+### Langkah 7 — Buat `app/tools.py`
+
+```python
+import httpx, json
+from .config import settings
+from .database import DocStore  # jika USE_LOCAL_DB=true
+
+class ToolRegistry:
+    def __init__(self):
+        self.store = DocStore()
+
+    def call(self, action: str, action_input: str) -> str:
+        a = action.lower()
+        if a == "search_knowledge":
+            return self._search(action_input)
+        elif a == "list_documents":
+            return self._list(action_input)
+        elif a == "create_document":
+            return self._create(action_input)
+        return "Tool tidak dikenal."
+
+    def _search(self, query: str) -> str:
+        results = self.store.search(query, k=3)
+        if not results:
+            return "Tidak ada dokumen relevan ditemukan."
+        lines = []
+        for i, r in enumerate(results, 1):
+            lines.append(f"[{i}] (score={r[3]:.4f}) Sumber: {r[1]}\n    {r[2][:300]}")
+        return "\n".join(lines)
+
+    def _list(self, limit_str: str) -> str:
+        try:
+            limit = int(limit_str.strip())
+        except ValueError:
+            limit = 5
+        rows = self.store.list(limit=limit)
+        return "\n".join(f"- [{r[0][:8]}] {r[1]}: {r[2][:80]}" for r in rows)
+
+    def _create(self, json_str: str) -> str:
+        try:
+            data = json.loads(json_str)
+            doc_id = self.store.create(data["source"], data["content"])
+            return f"Dokumen berhasil disimpan dengan ID: {doc_id}"
+        except Exception as e:
+            return f"Gagal menyimpan dokumen: {e}"
+```
+
+### Langkah 8 — Buat `app/main.py`
+
+```python
+from contextlib import asynccontextmanager
+from fastapi import FastAPI
+from .llm import start_llama, stop_llama
+from .react import react_loop
+from .schemas import ReActRequest, ReActResponse
+from .database import DocStore
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    DocStore().seed()   # seed data bila kosong
+    await start_llama()
+    yield
+    stop_llama()
+
+app = FastAPI(title="Sesi 3 — Knowledge Agent ReAct", lifespan=lifespan)
+
+@app.get("/health")
+def health():
+    return {"status": "ok"}
+
+@app.post("/agent/chat", response_model=ReActResponse)
+async def chat(req: ReActRequest):
+    answer, steps = await react_loop(req.query, req.max_steps, req.temperature)
+    return ReActResponse(
+        query=req.query,
+        final_answer=answer,
+        total_steps=len(steps),
+        steps=steps,
+    )
+```
+
+### Langkah 9 — Jalankan Server
+
+```cmd
+run.bat
+```
+
+Atau manual:
+```cmd
+uvicorn app.main:app --port 8002 --reload
+```
+
+Saat startup, llama-server otomatis distart. Tunggu log `[OK] llama-server siap` sebelum lanjut.
+
+### Langkah 10 — Uji ReAct Loop via Swagger
+
+Buka **http://localhost:8002/docs** → `POST /agent/chat`:
+
+**Uji 1 — Pertanyaan satu topik:**
+```json
+{ "query": "Apa kebijakan refund produk?", "max_steps": 8 }
+```
+Harapan: 2 langkah (search + FINISH), `total_steps: 2`.
+
+**Uji 2 — Pertanyaan multi-topik:**
+```json
+{ "query": "Bagaimana cara klaim garansi NocBook dan apa syarat refund?", "max_steps": 8 }
+```
+Harapan: ≥3 langkah (search garansi + search refund + FINISH).
+
+**Yang perlu dicermati di field `steps`:**
+- `thought` menjelaskan reasoning agent
+- `action` = nama tool yang dipanggil
+- `observation` = hasil tool (konten dokumen yang ditemukan)
+- FINISH hanya muncul di langkah terakhir
+
+**Uji 3 — Pertanyaan tanpa tool:**
+```json
+{ "query": "Halo, selamat pagi!" }
+```
+Harapan: agent langsung FINISH tanpa `search_knowledge`.
+
+### Langkah 11 — Jalankan Unit Test
+
+```cmd
+pytest tests/test_react.py -v
+```
+
+Test `test_react.py` tidak memerlukan LLM nyala — hanya menguji fungsi `_parse_step()`:
+
+```python
+from app.react import _parse_step, _is_placeholder
+
+def test_parse_step():
+    output = "Thought: Saya perlu cari refund\nAction: search_knowledge\nAction Input: kebijakan refund"
+    t, a, ai = _parse_step(output)
+    assert a == "search_knowledge"
+    assert "refund" in ai
+
+def test_placeholder_detection():
+    assert _is_placeholder("Selesai") == True
+    assert _is_placeholder("Kebijakan refund berlaku 30 hari") == False
+```
+
+> ✅ **Checkpoint**: `POST /agent/chat` dengan query pertanyaan produk mengembalikan `steps` dengan trace Thought/Action/Observation yang jelas, dan `final_answer` berisi jawaban yang dirangkum → Sesi 3 selesai!
