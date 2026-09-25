@@ -111,17 +111,6 @@ BIN_DIR = os.path.join(ROOT_DIR, "bin")
 MODELS_DIR = os.path.join(ROOT_DIR, "models")
 EXE_NAME = "llama-server.exe" if platform.system() == "Windows" else "llama-server"
 
-# Singleton instance
-llama_client = LlamaClient(
-    bin_path=os.path.join(BIN_DIR, EXE_NAME),
-    model_path=os.path.join(MODELS_DIR, settings.llm_model_gguf),
-    port=settings.llama_port,
-    ctx=settings.llama_ctx,
-    ngl=settings.llama_ngl,
-    threads=settings.llama_threads,
-    base_url=settings.llama_base_url,
-)
-
 # State dict untuk health check (compatible dengan main.py)
 class _State(dict):
     pass
@@ -133,7 +122,7 @@ def _update_state():
     state["ready"] = llama_client._is_ready
     state["process"] = llama_client._process
 
-# Patch llama_client.start untuk update state
+# Patch metode sebelum instance dibuat
 _original_start = LlamaClient.start
 async def _patched_start(self, timeout=90):
     await _original_start(self, timeout)
@@ -141,13 +130,23 @@ async def _patched_start(self, timeout=90):
 
 LlamaClient.start = _patched_start
 
-# Patch llama_client.stop untuk update state
 _original_stop = LlamaClient.stop
 def _patched_stop(self):
     _original_stop(self)
     _update_state()
 
 LlamaClient.stop = _patched_stop
+
+# Singleton instance
+llama_client = LlamaClient(
+    bin_path=os.path.join(BIN_DIR, EXE_NAME),
+    model_path=os.path.join(MODELS_DIR, settings.llm_model_gguf),
+    port=settings.llama_port,
+    ctx=settings.llama_ctx,
+    ngl=settings.llama_ngl,
+    threads=settings.llama_threads,
+    base_url=settings.llama_base_url,
+)
 
 @asynccontextmanager
 async def lifespan(app):
