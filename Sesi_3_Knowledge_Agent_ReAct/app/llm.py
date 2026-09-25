@@ -122,6 +122,33 @@ llama_client = LlamaClient(
     base_url=settings.llama_base_url,
 )
 
+# State dict untuk health check (compatible dengan main.py)
+class _State(dict):
+    pass
+
+state = _State()
+
+def _update_state():
+    """Update state dict dari llama_client."""
+    state["ready"] = llama_client._is_ready
+    state["process"] = llama_client._process
+
+# Patch llama_client.start untuk update state
+_original_start = LlamaClient.start
+async def _patched_start(self, timeout=90):
+    await _original_start(self, timeout)
+    _update_state()
+
+LlamaClient.start = _patched_start
+
+# Patch llama_client.stop untuk update state
+_original_stop = LlamaClient.stop
+def _patched_stop(self):
+    _original_stop(self)
+    _update_state()
+
+LlamaClient.stop = _patched_stop
+
 @asynccontextmanager
 async def lifespan(app):
     try:
