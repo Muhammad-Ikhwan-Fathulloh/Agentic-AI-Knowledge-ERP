@@ -28,11 +28,11 @@ Proyek ini menggunakan LLM secara lokal (Local AI). Ikuti langkah ini agar LLM b
 **1. Siapkan Binary llama-server**
 - Download *release* terbaru dari **[GitHub llama.cpp releases](https://github.com/ggerganov/llama.cpp/releases)**.
 - Ambil file `llama-server.exe` (di Windows) atau `llama-server` (di Mac/Linux).
-- Letakkan binary tersebut di folder `../End-to-End LLM Serving/backend/bin/`. (Buat foldernya jika belum ada).
+- Letakkan binary tersebut di folder `../bin/`. (Buat foldernya jika belum ada).
 
 **2. Siapkan File Model GGUF**
 📥 **[Download model GGUF dari Google Drive](https://drive.google.com/drive/folders/16eYzbAx7KOnawHqmnMD6tjshSSCmp6sX?usp=sharing)**
-- Letakkan file `.gguf` di folder `../End-to-End LLM Serving/models/`.
+- Letakkan file `.gguf` di folder `../models/`.
 - Periksa isian `LLM_MODEL_GGUF` di `.env` Anda agar persis dengan file model yang terinstal.
 
 ## Struktur

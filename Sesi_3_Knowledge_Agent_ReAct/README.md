@@ -402,11 +402,11 @@ Proyek ini tidak memakai API pihak ketiga (seperti OpenAI/Gemini), seluruhnya di
 Llama.cpp adalah engine ringan berbasis C++ untuk mengeksekusi model LLM lokal. 
 - Download *pre-built release* terbaru dari **[GitHub llama.cpp releases](https://github.com/ggerganov/llama.cpp/releases)**, pilih OS Anda (Windows/Mac/Linux).
 - Ekstrak file yang didownload, ambil file bernama `llama-server.exe` (di Windows) atau `llama-server` (di Mac/Linux).
-- Pastikan binary tersebut disalin dan diletakkan di dalam folder `Sesi_3_Knowledge_Agent_ReAct/bin/`. (Buat foldernya jika belum ada).
+- Pastikan binary tersebut disalin dan diletakkan di dalam folder `../bin/`. (Buat foldernya di root proyek jika belum ada).
 
 **2. Siapkan Model GGUF**
 - Download model `.gguf` (kami merekomendasikan Qwen 0.5B / 1.5B) **[dari Google Drive berikut ini](https://drive.google.com/drive/folders/16eYzbAx7KOnawHqmnMD6tjshSSCmp6sX?usp=sharing)** atau HuggingFace.
-- Letakkan file model `.gguf` di dalam folder `Agentic-AI-Knowledge-ERP/models/` di root proyek.
+- Letakkan file model `.gguf` di dalam folder `../models/` di root proyek.
 - Pastikan nama file `llm_model_gguf` di **.env / config.py** sesuai dengan nama file yang telah diletakkan.
 
 Setelah dua prasyarat ini disiapkan, agent dapat langsung mengaktifkan LLM secara otomatis.

@@ -104,11 +104,11 @@ class LlamaClient:
             return f"[ERROR LLM: {e}]"
 
 
-# === Path setup specific to Sesi_7 ===
+# === Path setup ===
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-ROOT_DIR = os.path.dirname(os.path.dirname(BASE_DIR))
-BIN_DIR = os.path.join(ROOT_DIR, "End-to-End LLM Serving", "backend", "bin")
-MODELS_DIR = os.path.join(ROOT_DIR, "End-to-End LLM Serving", "models")
+ROOT_DIR = os.path.dirname(BASE_DIR)
+BIN_DIR = os.path.join(ROOT_DIR, "bin")
+MODELS_DIR = os.path.join(ROOT_DIR, "models")
 EXE_NAME = "llama-server.exe" if platform.system() == "Windows" else "llama-server"
 
 # Singleton instance
