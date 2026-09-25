@@ -1,5 +1,5 @@
 """
-app/tools.py — Tool registry untuk ReAct agent.
+app/tools.py - Tool registry untuk ReAct agent.
 
 Dual-mode:
   • USE_LOCAL_DB=true (default)  → baca/tulis langsung ke DuckDB lokal Sesi 3.
@@ -109,7 +109,7 @@ class KnowledgeTools:
         return f"ERROR list: {result}"
 
     # ------------------------------------------------------------------
-    # Dispatcher — dipanggil oleh react_loop
+    # Dispatcher - dipanggil oleh react_loop
     # ------------------------------------------------------------------
     def call(self, action: str, action_input: str) -> str:
         """Memetakan string action + action_input ke method yang tepat."""

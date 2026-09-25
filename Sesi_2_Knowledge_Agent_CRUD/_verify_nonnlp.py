@@ -1,4 +1,4 @@
-"""Verifikasi logic NON-EMBEDDING Sesi 2 — tidak butuh download embedding model."""
+"""Verifikasi logic NON-EMBEDDING Sesi 2 - tidak butuh download embedding model."""
 import sys
 import os
 import tempfile

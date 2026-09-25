@@ -1,6 +1,6 @@
 @echo off
 REM =============================================================
-REM  Sesi 2 — Knowledge Agent CRUD REST API (Port 8001)
+REM  Sesi 2 - Knowledge Agent CRUD REST API (Port 8001)
 REM  Menyediakan CRUD + semantic search untuk tabel documents
 REM  (DuckDB knowledge.duckdb).
 REM  File .venv dan knowledge.duckdb tidak perlu dibuat ulang

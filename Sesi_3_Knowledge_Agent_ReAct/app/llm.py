@@ -37,7 +37,7 @@ class LlamaClient:
             raise RuntimeError(f"llama-server tidak ditemukan di: {self.bin_path}")
             
         if not os.path.isfile(self.model_path):
-            print(f"[WARN] Model GGUF tidak ditemukan di: {self.model_path} — lanjutkan tanpa model lokal.")
+            print(f"[WARN] Model GGUF tidak ditemukan di: {self.model_path} - lanjutkan tanpa model lokal.")
             return
 
         cmd = [
@@ -86,7 +86,7 @@ class LlamaClient:
 
     async def complete(self, prompt: str, max_tokens: int = 512, temperature: float = 0.3, stop=None) -> str:
         if not self._is_ready:
-            return "[LLM tidak siap — pastikan llama-server berjalan / model tersedia]"
+            return "[LLM tidak siap - pastikan llama-server berjalan / model tersedia]"
 
         payload = {
             "prompt": prompt,

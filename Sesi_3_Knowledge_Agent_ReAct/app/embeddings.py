@@ -1,5 +1,5 @@
 """
-app/embeddings.py — disalin dari Sesi 2, dipakai langsung oleh database.py lokal Sesi 3.
+app/embeddings.py - disalin dari Sesi 2, dipakai langsung oleh database.py lokal Sesi 3.
 """
 from sentence_transformers import SentenceTransformer
 from app.config import settings

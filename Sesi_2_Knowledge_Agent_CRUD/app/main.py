@@ -19,7 +19,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(
-    title="Sesi 2 — Knowledge Agent CRUD REST API",
+    title="Sesi 2 - Knowledge Agent CRUD REST API",
     version="1.0.0",
     lifespan=lifespan,
 )

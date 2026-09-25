@@ -44,7 +44,7 @@ class ERPTools:
             lines = [f"Daftar {len(rows)} produk:"]
             for r in rows:
                 lines.append(
-                    f"- [{r['id'][:8]}] {r['name']} — Rp{r['price']:,.0f} (stok {r['stock']})"
+                    f"- [{r['id'][:8]}] {r['name']} - Rp{r['price']:,.0f} (stok {r['stock']})"
                 )
             return "\n".join(lines)
         return f"ERROR: {rows}"

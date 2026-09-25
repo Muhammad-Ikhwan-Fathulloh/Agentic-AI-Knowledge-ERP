@@ -1,6 +1,6 @@
 @echo off
 REM =============================================================
-REM  Sesi 7 — ERP Narrative Report Generate (Port 8007)
+REM  Sesi 7 - ERP Narrative Report Generate (Port 8007)
 REM  Butuh Sesi 5 ERP API (port 8005)
 REM =============================================================
 cd /d "%~dp0"

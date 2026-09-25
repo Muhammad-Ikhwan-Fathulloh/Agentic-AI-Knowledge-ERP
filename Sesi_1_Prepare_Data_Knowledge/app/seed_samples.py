@@ -1,6 +1,6 @@
 """
 CLI ingest: python -m app.seed_samples   (jika tidak mau jalankan FastAPI)
-Tidak dieksekusi jika pakai uvicorn main:app — seed otomatis di lifespan main.py.
+Tidak dieksekusi jika pakai uvicorn main:app - seed otomatis di lifespan main.py.
 """
 import sys
 import os

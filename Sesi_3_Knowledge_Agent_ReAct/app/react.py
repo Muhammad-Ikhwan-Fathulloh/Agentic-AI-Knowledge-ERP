@@ -11,7 +11,7 @@ Tool yang TERSEDIA:
 - list_documents[limit]: melihat daftar dokumen yang tersimpan.
 - create_document[{"source":"...", "content":"..."}]: menyimpan dokumen baru.
 
-FORMAT WAJIB setiap langkah — satu Thought + satu Action + satu Action Input:
+FORMAT WAJIB setiap langkah - satu Thought + satu Action + satu Action Input:
 Thought: <jelaskan kenapa kamu butuh tool / apa yang kamu pikirkan>
 Action: <nama_tool, WAJIB salah satu dari: search_knowledge, list_documents, create_document, atau FINISH>
 Action Input: <parameter tool, atau JAWABAN FINAL jika Action=FINISH>
@@ -23,11 +23,11 @@ ATURAN MULTI-TOPIK (WAJIB DIIKUTI):
 - Sebelum lanjut ke topik berikutnya, tulis di Thought apakah topik saat ini sudah cukup informasinya, dan topik apa saja yang masih belum dicari.
 - Jika hasil search_knowledge terlihat terpotong (misalnya berisi langkah bernomor 1-4 tapi terindikasi masih berlanjut, atau skor relevansi rendah/ambigu), gunakan list_documents untuk memverifikasi/melengkapi sebelum melanjutkan.
 
-ATURAN FINISH (WAJIB DIIKUTI — JANGAN DILANGGAR):
+ATURAN FINISH (WAJIB DIIKUTI - JANGAN DILANGGAR):
 - Action FINISH HANYA boleh dipakai setelah SEMUA topik dalam pertanyaan user sudah dicari dan informasinya terkumpul.
 - Action Input untuk FINISH TIDAK BOLEH kosong, tidak boleh berupa placeholder seperti "Selesai" atau "jawaban final", dan tidak boleh hanya mengulang Observation mentah-mentah.
-- Action Input untuk FINISH WAJIB berupa jawaban lengkap, tersusun rapi (gunakan poin bernomor per topik jika lebih dari satu topik), merangkum seluruh Observation yang relevan menjadi kalimat/instruksi yang siap dibaca langsung oleh user — bukan sekadar menyalin snippet.
-- Jika informasi dari knowledge base belum cukup untuk menjawab salah satu topik, JANGAN FINISH dulu — lakukan search_knowledge tambahan dengan query yang berbeda/lebih spesifik.
+- Action Input untuk FINISH WAJIB berupa jawaban lengkap, tersusun rapi (gunakan poin bernomor per topik jika lebih dari satu topik), merangkum seluruh Observation yang relevan menjadi kalimat/instruksi yang siap dibaca langsung oleh user - bukan sekadar menyalin snippet.
+- Jika informasi dari knowledge base belum cukup untuk menjawab salah satu topik, JANGAN FINISH dulu - lakukan search_knowledge tambahan dengan query yang berbeda/lebih spesifik.
 - Minimal langkah sebelum FINISH = (jumlah topik terdeteksi × minimal 1 search_knowledge per topik) + langkah tambahan jika perlu list_documents.
 
 Contoh benar (satu topik):
@@ -35,7 +35,7 @@ Thought: User ingin tahu tentang produk X, saya perlu cari di knowledge base.
 Action: search_knowledge
 Action Input: produk X fitur dan spesifikasi
 
-Contoh benar (multi-topik — pertanyaan mengandung garansi DAN pengembalian):
+Contoh benar (multi-topik - pertanyaan mengandung garansi DAN pengembalian):
 Thought: Pertanyaan user mengandung dua topik: klaim garansi dan pengembalian barang. Saya mulai dari topik garansi dulu.
 Action: search_knowledge
 Action Input: cara klaim garansi barang
@@ -50,7 +50,7 @@ Action Input: Untuk klaim GARANSI: 1) Hubungi CS via WhatsApp dengan foto serial
 
 Contoh SALAH (dilarang):
 Action: FINISH
-Action Input: Selesai — jawaban final.
+Action Input: Selesai - jawaban final.
 (^ SALAH karena kosong/placeholder, tidak menjawab pertanyaan user)
 
 === Mulai percakapan ===
@@ -138,7 +138,7 @@ async def react_loop(
                 history += output + f"\nObservation: {log.observation}\n\n"
                 continue  # paksa LLM coba lagi, bukan langsung return
 
-            log.observation = "Selesai — jawaban final."
+            log.observation = "Selesai - jawaban final."
             steps.append(log)
             final_answer = action_input if not _is_placeholder_answer(action_input) else (
                 "Maaf, informasi belum cukup untuk menjawab semua bagian pertanyaan Anda."

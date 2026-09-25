@@ -1,7 +1,7 @@
-# Setup Lokal — Knowledge Agent: CRUD REST API (FastAPI + Uvicorn + DuckDB + pgvector)
+# Setup Lokal - Knowledge Agent: CRUD REST API (FastAPI + Uvicorn + DuckDB + pgvector)
 
 **Referensi:** `Sesi_2_Knowledge_Agent_CRUD_API.ipynb`
-**Bedanya dengan versi Colab:** notebook ini jalan di memori (`TestClient`), versi ini jalan sebagai **server sungguhan** di mesin lokal (`uvicorn`), dan menambahkan opsi backend vector store kedua — **PostgreSQL + pgvector** — di samping DuckDB.
+**Bedanya dengan versi Colab:** notebook ini jalan di memori (`TestClient`), versi ini jalan sebagai **server sungguhan** di mesin lokal (`uvicorn`), dan menambahkan opsi backend vector store kedua - **PostgreSQL + pgvector** - di samping DuckDB.
 
 ## Tentang Panduan Ini
 Sesi 1–2 (versi Colab) membangun API di dalam satu notebook. Di lokal, kita pecah jadi beberapa file (`main.py`, `database.py`, `schemas.py`) supaya bisa dijalankan sebagai service beneran dengan `uvicorn`, dan bisa dipanggil dari luar (termasuk oleh agent di Sesi 3–4) tanpa Colab/ngrok.
@@ -35,7 +35,7 @@ knowledge-agent-api/
 
 ---
 
-## Step 1 — Setup Virtual Environment
+## Step 1 - Setup Virtual Environment
 
 ```bash
 mkdir knowledge-agent-api && cd knowledge-agent-api
@@ -44,7 +44,7 @@ source .venv/bin/activate        # Windows: .venv\Scripts\activate
 .venv\Scripts\activate
 ```
 
-## Step 2 — `requirements.txt`
+## Step 2 - `requirements.txt`
 
 ```txt
 fastapi==0.115.0
@@ -88,7 +88,7 @@ pgvector
 pip install -r requirements.txt
 ```
 
-## Step 3 — Konfigurasi `.env`
+## Step 3 - Konfigurasi `.env`
 
 ```bash
 # .env.example
@@ -108,7 +108,7 @@ PGWEB_PORT=8081
 POSTGRES_URL=postgresql+psycopg2://user:password@localhost:5432/mydatabase
 ```
 
-> `POSTGRES_URL` dipakai oleh `app/database.py` (koneksi dari FastAPI ke Postgres), sedangkan `POSTGRES_USER`/`POSTGRES_PASSWORD`/`POSTGRES_DB`/`POSTGRES_PORT`/`PGWEB_PORT` dipakai oleh `docker-compose.yml` (Step 8). Pastikan kredensialnya sama di kedua tempat — kalau kamu ubah `POSTGRES_PASSWORD` di `.env`, `POSTGRES_URL` juga harus diupdate manual (`pydantic-settings` tidak otomatis merangkai keduanya).
+> `POSTGRES_URL` dipakai oleh `app/database.py` (koneksi dari FastAPI ke Postgres), sedangkan `POSTGRES_USER`/`POSTGRES_PASSWORD`/`POSTGRES_DB`/`POSTGRES_PORT`/`PGWEB_PORT` dipakai oleh `docker-compose.yml` (Step 8). Pastikan kredensialnya sama di kedua tempat - kalau kamu ubah `POSTGRES_PASSWORD` di `.env`, `POSTGRES_URL` juga harus diupdate manual (`pydantic-settings` tidak otomatis merangkai keduanya).
 
 ```bash
 cp .env.example .env
@@ -131,7 +131,7 @@ class Settings(BaseSettings):
 settings = Settings()
 ```
 
-## Step 4 — Model Embedding (sama seperti Sesi 1/2)
+## Step 4 - Model Embedding (sama seperti Sesi 1/2)
 
 ```python
 # app/embeddings.py
@@ -144,7 +144,7 @@ def encode(text: str) -> list[float]:
     return embed_model.encode(text).tolist()
 ```
 
-## Step 5 — Layer Database (pluggable: DuckDB ↔ pgvector)
+## Step 5 - Layer Database (pluggable: DuckDB ↔ pgvector)
 
 Ini bagian utama bedanya dari notebook: satu modul `database.py` menyediakan fungsi yang sama (`insert_document`, `get_document`, `list_documents`, `update_document`, `delete_document`, `search_documents`) apapun backend-nya, supaya `main.py` tidak perlu tahu perbedaannya.
 
@@ -170,7 +170,7 @@ def init_duckdb():
 
 ### 5b. PostgreSQL + pgvector (backend baru untuk lokal)
 
-pgvector cocok kalau API ini nantinya dipakai lebih dari satu proses/service sekaligus (DuckDB adalah file lokal single-process, sedangkan Postgres bisa diakses banyak client bersamaan — relevan kalau Sesi 3–4 nanti jalan sebagai service terpisah).
+pgvector cocok kalau API ini nantinya dipakai lebih dari satu proses/service sekaligus (DuckDB adalah file lokal single-process, sedangkan Postgres bisa diakses banyak client bersamaan - relevan kalau Sesi 3–4 nanti jalan sebagai service terpisah).
 
 ```python
 # app/database.py (bagian pgvector)
@@ -293,9 +293,9 @@ class DocStore:
 store = DocStore()
 ```
 
-> **Catatan:** `array_distance` (DuckDB vss) dan operator `<=>` (pgvector, cosine distance) melakukan hal yang konsep-nya sama seperti `search_documents` di notebook Sesi 2 — cuma sintaksnya beda per backend, makanya dibungkus di `DocStore.search`.
+> **Catatan:** `array_distance` (DuckDB vss) dan operator `<=>` (pgvector, cosine distance) melakukan hal yang konsep-nya sama seperti `search_documents` di notebook Sesi 2 - cuma sintaksnya beda per backend, makanya dibungkus di `DocStore.search`.
 
-## Step 6 — Pydantic Schemas (sama seperti Sesi 2)
+## Step 6 - Pydantic Schemas (sama seperti Sesi 2)
 
 ```python
 # app/schemas.py
@@ -313,7 +313,7 @@ class DocSearchResult(DocOut):
     score: float
 ```
 
-## Step 7 — `main.py`: Endpoint CRUD + Search + Bulk
+## Step 7 - `main.py`: Endpoint CRUD + Search + Bulk
 
 Endpoint dan logikanya identik dengan `Sesi_2_Knowledge_Agent_CRUD_API.ipynb` (termasuk solusi TODO 1 `/documents/bulk`), hanya sumber datanya sekarang lewat `store` (bisa DuckDB atau pgvector).
 
@@ -365,9 +365,9 @@ def bulk_create(docs: List[DocIn]):
     return {"inserted": len(docs)}
 ```
 
-## Step 8 — Upload PDF sebagai Dokumen
+## Step 8 - Upload PDF sebagai Dokumen
 
-Selain `POST /documents` (teks manual) dan `/documents/bulk` (array JSON), tambahkan endpoint upload file PDF: teks di-extract per halaman, tiap halaman/chunk di-*embed* dan disimpan sebagai baris `documents` sendiri — jadi langsung bisa dicari lewat `/documents/search`.
+Selain `POST /documents` (teks manual) dan `/documents/bulk` (array JSON), tambahkan endpoint upload file PDF: teks di-extract per halaman, tiap halaman/chunk di-*embed* dan disimpan sebagai baris `documents` sendiri - jadi langsung bisa dicari lewat `/documents/search`.
 
 ### 8a. Modul extract & chunk PDF
 
@@ -428,7 +428,7 @@ async def upload_pdf(file: UploadFile = File(...)):
     }
 ```
 
-> Kalau PDF-nya hasil scan (gambar, bukan teks selectable), `extract_text()` akan balikin string kosong per halaman — di kasus itu perlu OCR (di luar cakupan panduan ini; lihat skill `pdf-reading` kalau butuh OCR).
+> Kalau PDF-nya hasil scan (gambar, bukan teks selectable), `extract_text()` akan balikin string kosong per halaman - di kasus itu perlu OCR (di luar cakupan panduan ini; lihat skill `pdf-reading` kalau butuh OCR).
 
 ### 8c. Uji upload PDF lewat curl
 
@@ -437,7 +437,7 @@ curl -X POST http://localhost:8000/documents/upload-pdf \
   -F "file=@/path/ke/dokumen.pdf"
 ```
 
-Atau lewat Swagger UI di `http://localhost:8000/docs` — endpoint `/documents/upload-pdf` otomatis muncul dengan tombol pilih file, karena FastAPI generate form upload dari tipe `UploadFile`.
+Atau lewat Swagger UI di `http://localhost:8000/docs` - endpoint `/documents/upload-pdf` otomatis muncul dengan tombol pilih file, karena FastAPI generate form upload dari tipe `UploadFile`.
 
 ### 8d. (Opsional) Uji dengan pytest
 
@@ -458,7 +458,7 @@ def test_upload_pdf():
     assert resp.json()["chunks_inserted"] > 0
 ```
 
-## Step 9 — (Opsional) Docker Compose untuk PostgreSQL + pgvector
+## Step 9 - (Opsional) Docker Compose untuk PostgreSQL + pgvector
 
 Kalau `VECTOR_BACKEND=pgvector`, jalankan Postgres lokal via image resmi pgvector (sudah include extension, tinggal `CREATE EXTENSION`). Ditambah `pgweb` sebagai UI ringan buat inspect tabel `documents` dari browser tanpa perlu psql.
 
@@ -503,14 +503,14 @@ docker compose up -d
 
 Setelah `db` berstatus `healthy`, dua service siap dipakai:
 
-| Service | URL / Akses | Kegunaan |
-|---|---|---|
-| `db` (Postgres+pgvector) | `localhost:${POSTGRES_PORT:-5432}` | dipakai `app/database.py` lewat `POSTGRES_URL` |
-| `pgweb` | `http://localhost:${PGWEB_PORT:-8081}` | UI browser untuk lihat/query tabel `documents` |
+| Service                  | URL / Akses                            | Kegunaan                                       |
+| ------------------------ | -------------------------------------- | ---------------------------------------------- |
+| `db` (Postgres+pgvector) | `localhost:${POSTGRES_PORT:-5432}`     | dipakai `app/database.py` lewat `POSTGRES_URL` |
+| `pgweb`                  | `http://localhost:${PGWEB_PORT:-8081}` | UI browser untuk lihat/query tabel `documents` |
 
-> Karena `pgweb` punya `depends_on: db: condition: service_healthy`, dia otomatis menunggu Postgres benar-benar siap (`pg_isready`) sebelum jalan — tidak perlu retry manual.
+> Karena `pgweb` punya `depends_on: db: condition: service_healthy`, dia otomatis menunggu Postgres benar-benar siap (`pg_isready`) sebelum jalan - tidak perlu retry manual.
 
-## Step 10 — Menjalankan Server dengan Uvicorn
+## Step 10 - Menjalankan Server dengan Uvicorn
 
 ```bash
 # backend DuckDB (default, tidak perlu Docker)
@@ -523,7 +523,7 @@ uvicorn app.main:app --reload --port 8000
 
 Server jalan di `http://localhost:8000`, dokumentasi otomatis (Swagger UI) tersedia di `http://localhost:8000/docs`.
 
-## Step 11 — Uji API dari Terminal
+## Step 11 - Uji API dari Terminal
 
 ```bash
 # create
@@ -540,7 +540,7 @@ curl -X POST http://localhost:8000/documents/bulk \
   -d '[{"source":"a.txt","content":"Isi A"},{"source":"b.txt","content":"Isi B"}]'
 ```
 
-## Step 12 — Uji Otomatis dengan `pytest` (pengganti `TestClient` manual di Colab)
+## Step 12 - Uji Otomatis dengan `pytest` (pengganti `TestClient` manual di Colab)
 
 ```python
 # tests/test_documents.py
@@ -567,16 +567,16 @@ pytest tests/ -v
 
 ## Perbandingan Backend: DuckDB vs pgvector
 
-| Aspek | DuckDB + vss | PostgreSQL + pgvector |
-|---|---|---|
-| Setup | Zero-setup, file lokal | Perlu server Postgres (Docker/manual) |
-| Concurrency | Cocok single-process | Cocok multi-client / multi-service |
-| Cocok untuk | Development, notebook, prototipe (Sesi 1–2) | Deployment nyata, dipanggil banyak service (Sesi 3–4 sebagai server terpisah) |
-| Index similarity | `array_distance` + extension `vss` | Operator `<=>` + index `ivfflat`/`hnsw` |
-| Portabilitas | Satu file `.duckdb`, gampang dipindah | Butuh dump/restore Postgres |
+| Aspek            | DuckDB + vss                                | PostgreSQL + pgvector                                                         |
+| ---------------- | ------------------------------------------- | ----------------------------------------------------------------------------- |
+| Setup            | Zero-setup, file lokal                      | Perlu server Postgres (Docker/manual)                                         |
+| Concurrency      | Cocok single-process                        | Cocok multi-client / multi-service                                            |
+| Cocok untuk      | Development, notebook, prototipe (Sesi 1–2) | Deployment nyata, dipanggil banyak service (Sesi 3–4 sebagai server terpisah) |
+| Index similarity | `array_distance` + extension `vss`          | Operator `<=>` + index `ivfflat`/`hnsw`                                       |
+| Portabilitas     | Satu file `.duckdb`, gampang dipindah       | Butuh dump/restore Postgres                                                   |
 
 ## Ringkasan
 - Struktur project dipecah dari satu notebook jadi `app/` modular: `config.py`, `embeddings.py`, `database.py`, `schemas.py`, `pdf_ingest.py`, `main.py`.
-- Layer `DocStore` membuat endpoint CRUD **backend-agnostic** — tinggal ganti `VECTOR_BACKEND` di `.env` untuk pindah dari DuckDB ke pgvector tanpa ubah `main.py`.
-- Endpoint dan perilaku (termasuk solusi TODO 1 `/documents/bulk`) tetap identik dengan `Sesi_2_Knowledge_Agent_CRUD_API.ipynb`, jadi tetap bisa dipakai sebagai referensi pola *tool* untuk agent ReAct di Sesi 3–4 — kali ini lewat `http://localhost:8000` sungguhan, bukan `TestClient` di memori Colab.
-- Sumber dokumen sekarang ada tiga jalur: teks manual (`POST /documents`), array JSON (`POST /documents/bulk`), dan file PDF (`POST /documents/upload-pdf`) — ketiganya berakhir lewat fungsi `store.insert()` yang sama, jadi tetap konsisten di-embed dan bisa langsung dicari lewat `/documents/search`.
+- Layer `DocStore` membuat endpoint CRUD **backend-agnostic** - tinggal ganti `VECTOR_BACKEND` di `.env` untuk pindah dari DuckDB ke pgvector tanpa ubah `main.py`.
+- Endpoint dan perilaku (termasuk solusi TODO 1 `/documents/bulk`) tetap identik dengan `Sesi_2_Knowledge_Agent_CRUD_API.ipynb`, jadi tetap bisa dipakai sebagai referensi pola *tool* untuk agent ReAct di Sesi 3–4 - kali ini lewat `http://localhost:8000` sungguhan, bukan `TestClient` di memori Colab.
+- Sumber dokumen sekarang ada tiga jalur: teks manual (`POST /documents`), array JSON (`POST /documents/bulk`), dan file PDF (`POST /documents/upload-pdf`) - ketiganya berakhir lewat fungsi `store.insert()` yang sama, jadi tetap konsisten di-embed dan bisa langsung dicari lewat `/documents/search`.

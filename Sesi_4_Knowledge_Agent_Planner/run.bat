@@ -1,6 +1,6 @@
 @echo off
 REM =============================================================
-REM  Sesi 4 — Knowledge Agent Planner (Port 8003)
+REM  Sesi 4 - Knowledge Agent Planner (Port 8003)
 REM  Butuh Sesi 2 API (port 8001) sebagai Knowledge Tool
 REM
 REM  Catatan: Sesi ini bisa berdiri sendiri karena run.bat akan

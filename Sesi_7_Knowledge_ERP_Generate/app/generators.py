@@ -10,8 +10,8 @@ Berikut adalah DATA PENJUALAN {days} hari TERAKHIR dalam format teks:
 
 TULIS LAPORAN EKSEKUTIF dalam BAHASA INDONESIA FORMAL, TEPAT 4 PARAGRAF:
 Paragraf 1: Ringkasan total pendapatan dan performa umum.
-Paragraf 2: Analisis 3 produk terlaris (jika ada < 3, sebutkan semua) — sertakan unit terjual & kontribusi revenue.
-Paragraf 3: Tren yang terlihat (misal: produk teknologi tinggi laku, aksesoris stabil, dsb) — JANGAN mengarang data, simpulkan hanya dari angka yang ada.
+Paragraf 2: Analisis 3 produk terlaris (jika ada < 3, sebutkan semua) - sertakan unit terjual & kontribusi revenue.
+Paragraf 3: Tren yang terlihat (misal: produk teknologi tinggi laku, aksesoris stabil, dsb) - JANGAN mengarang data, simpulkan hanya dari angka yang ada.
 Paragraf 4: SATU rekomendasi BISNIS YANG ACTIONABLE (spesifik, bukan umum) + alasan singkat mengapa masuk akal.
 
 JANGAN menuliskan judul, JANGAN ulang angka mentah, langsung ke narasi analisis.
@@ -51,7 +51,7 @@ def _summarize_lowstock(data):
     for p in data.get("products", []):
         lines.append(f"  - {p['name']} (ID {p['id'][:8]}): stok={p['stock']}, harga=Rp{p['price']:,.0f}")
     if not data.get("products"):
-        lines.append("  (semua produk stok aman — tidak ada yang di bawah threshold)")
+        lines.append("  (semua produk stok aman - tidak ada yang di bawah threshold)")
     return "\n".join(lines)
 
 

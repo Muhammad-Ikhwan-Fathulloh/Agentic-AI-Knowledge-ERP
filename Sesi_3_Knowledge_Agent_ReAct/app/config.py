@@ -13,7 +13,7 @@ class Settings(BaseSettings):
     # knowledge.duckdb disimpan lokal di folder Sesi 3
     duckdb_path: str = os.path.join(_SESI3_DIR, "knowledge.duckdb")
 
-    # URL Sesi 2 — hanya dipakai jika USE_LOCAL_DB=false di .env
+    # URL Sesi 2 - hanya dipakai jika USE_LOCAL_DB=false di .env
     knowledge_api_base: str = "http://127.0.0.1:8001"
     # Jika true, tools.py membaca DuckDB lokal (tidak perlu Sesi 2 jalan)
     use_local_db: bool = True

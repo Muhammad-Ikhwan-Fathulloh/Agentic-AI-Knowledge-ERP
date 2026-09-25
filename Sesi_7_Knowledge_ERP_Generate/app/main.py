@@ -1,5 +1,5 @@
 """
-Sesi 7 — Knowledge ERP Generate (Laporan Naratif via Qwen) — Port 8007
+Sesi 7 - Knowledge ERP Generate (Laporan Naratif via Qwen) - Port 8007
 """
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -12,7 +12,7 @@ from app.schemas import (
 from app.generators import generate_sales_report, generate_low_stock_report
 
 app = FastAPI(
-    title="Sesi 7 — Knowledge ERP Generate (Narrative Report via Qwen)",
+    title="Sesi 7 - Knowledge ERP Generate (Narrative Report via Qwen)",
     version="7.0.0",
     lifespan=lifespan,
 )

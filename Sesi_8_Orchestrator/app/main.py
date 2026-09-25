@@ -1,10 +1,10 @@
 """
-Sesi 8 — Agentic AI Orchestrator (Port 8000)
+Sesi 8 - Agentic AI Orchestrator (Port 8000)
 ===============================================
 Menyatukan Knowledge Agent + ERP Agent dengan:
   • Router LLM (klasifikasi domain) + rule-based fallback
-  • Semantic Cache (DuckDB VSS) — adaptasi pola P3 di End-to-End-LLM-Serving
-  • Feedback Loop (Like/Dislike) — adaptasi pola P4 di End-to-End-LLM-Serving
+  • Semantic Cache (DuckDB VSS) - adaptasi pola P3 di End-to-End-LLM-Serving
+  • Feedback Loop (Like/Dislike) - adaptasi pola P4 di End-to-End-LLM-Serving
 """
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -20,7 +20,7 @@ from app.database import (
 )
 
 app = FastAPI(
-    title="Sesi 8 — Agentic AI Orchestrator (Knowledge + ERP)",
+    title="Sesi 8 - Agentic AI Orchestrator (Knowledge + ERP)",
     version="8.0.0",
     lifespan=lifespan,
 )

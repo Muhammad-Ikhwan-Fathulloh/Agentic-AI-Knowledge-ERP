@@ -1,5 +1,5 @@
 """
-Sesi 1 — Prepare Data Knowledge & Create Vector DB (Port 8000 untuk Sesi 1 standalone,
+Sesi 1 - Prepare Data Knowledge & Create Vector DB (Port 8000 untuk Sesi 1 standalone,
 namun bila ingin pakai Sesi 2 sebagai knowledge API, gunakan port 8001 milik Sesi 2).
 Sesi ini fokus ke pipeline: Load → Clean → Chunk → Embed → Store.
 
@@ -70,7 +70,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(
-    title="Sesi 1 — Prepare Data Knowledge & Vector DB",
+    title="Sesi 1 - Prepare Data Knowledge & Vector DB",
     version="1.0.0",
     lifespan=lifespan,
 )

@@ -1,4 +1,4 @@
-# Sesi 1 — Prepare Data Knowledge & Create Vector DB (Port 8000)
+# Sesi 1 - Prepare Data Knowledge & Create Vector DB (Port 8000)
 
 **Notebook referensi:** `../Sesi_1_Prepare_Data_Knowledge_VectorDB.ipynb`
 **Penjelasan mendalam:** `../README_Sesi_1.md`
@@ -12,7 +12,7 @@ Service ini juga menyediakan **API ingest + search** standalone, serta **seed da
 
 ## Prasyarat
 - Python 3.10+ (tested 3.11)
-- Tidak perlu GPU — model embedding all-MiniLM-L6-v2 berjalan di CPU dengan baik.
+- Tidak perlu GPU - model embedding all-MiniLM-L6-v2 berjalan di CPU dengan baik.
 
 ## Pipeline
 ```
@@ -100,7 +100,7 @@ Test **tidak membutuhkan LLM nyala** (hanya menguji chunking logic + dimensi emb
 
 - **Sesi 1 → Sesi 2:** Output file `knowledge.duckdb` dari Sesi 1 dapat langsung dipakai Sesi 2 (CRUD REST API) karena kedua sesi pakai skema tabel `documents` identik.
 - **Catatan concurrency DuckDB:** Karena DuckDB adalah file embedded single-writer, jalankan **hanya salah satu** Sesi 1 atau Sesi 2 pada satu `knowledge.duckdb` pada waktu bersamaan (atau set `DUCKDB_PATH` berbeda di `.env` masing-masing jika ingin DB terpisah).
-- **Sesi 3 & Sesi 4 (Knowledge Agent):** akan memanggil endpoint `search` milik Sesi 2 (port 8001) sebagai tool RAG — jadi Sesi 1 & 2 sama-sama fondasi untuk agent reasoning.
+- **Sesi 3 & Sesi 4 (Knowledge Agent):** akan memanggil endpoint `search` milik Sesi 2 (port 8001) sebagai tool RAG - jadi Sesi 1 & 2 sama-sama fondasi untuk agent reasoning.
 
 ---
 
@@ -108,7 +108,7 @@ Test **tidak membutuhkan LLM nyala** (hanya menguji chunking logic + dimensi emb
 
 Ikuti langkah demi langkah berikut untuk membangun ulang Sesi 1 dari awal.
 
-### Langkah 1 — Buat Struktur Folder
+### Langkah 1 - Buat Struktur Folder
 
 ```cmd
 mkdir Sesi_1_Prepare_Data_Knowledge
@@ -116,7 +116,7 @@ cd Sesi_1_Prepare_Data_Knowledge
 mkdir app tests
 ```
 
-### Langkah 2 — Buat Virtual Environment & Install Dependensi
+### Langkah 2 - Buat Virtual Environment & Install Dependensi
 
 ```cmd
 python -m venv .venv
@@ -145,7 +145,7 @@ Lalu install:
 pip install -r requirements.txt
 ```
 
-### Langkah 3 — Buat File Konfigurasi `.env`
+### Langkah 3 - Buat File Konfigurasi `.env`
 
 ```env
 EMBED_MODEL=all-MiniLM-L6-v2
@@ -156,7 +156,7 @@ CHUNK_OVERLAP=80
 APP_PORT=8000
 ```
 
-### Langkah 4 — Buat `app/config.py`
+### Langkah 4 - Buat `app/config.py`
 
 Buat file `app/config.py` untuk membaca `.env` via `pydantic-settings`:
 
@@ -177,7 +177,7 @@ class Settings(BaseSettings):
 settings = Settings()
 ```
 
-### Langkah 5 — Buat `app/schemas.py`
+### Langkah 5 - Buat `app/schemas.py`
 
 Definisikan request/response model Pydantic:
 
@@ -196,9 +196,9 @@ class SearchRequest(BaseModel):
     k: int = 3
 ```
 
-### Langkah 6 — Buat `app/database.py`
+### Langkah 6 - Buat `app/database.py`
 
-Inilah inti proyek — modul yang mengelola DuckDB + VSS:
+Inilah inti proyek - modul yang mengelola DuckDB + VSS:
 
 ```python
 import duckdb, uuid
@@ -288,7 +288,7 @@ def delete_all():
     conn.close()
 ```
 
-### Langkah 7 — Buat `app/ingest.py`
+### Langkah 7 - Buat `app/ingest.py`
 
 Modul untuk mengekstrak teks dari PDF, TXT, dan Markdown:
 
@@ -301,11 +301,11 @@ def extract_text(filename: str, content: bytes) -> str:
     if ext == "pdf":
         reader = PdfReader(io.BytesIO(content))
         return "\n".join(p.extract_text() or "" for p in reader.pages)
-    # TXT / MD — decode langsung
+    # TXT / MD - decode langsung
     return content.decode("utf-8", errors="ignore")
 ```
 
-### Langkah 8 — Buat `app/seed_samples.py`
+### Langkah 8 - Buat `app/seed_samples.py`
 
 Data contoh 8 FAQ/SOP yang otomatis di-seed saat DB kosong:
 
@@ -319,7 +319,7 @@ SAMPLES = [
 ]
 ```
 
-### Langkah 9 — Buat `app/main.py`
+### Langkah 9 - Buat `app/main.py`
 
 FastAPI entrypoint lengkap dengan seluruh endpoint:
 
@@ -339,7 +339,7 @@ async def lifespan(app: FastAPI):
             insert_chunks(s["source"], s["content"])
     yield
 
-app = FastAPI(title="Sesi 1 — Knowledge Vector DB", lifespan=lifespan)
+app = FastAPI(title="Sesi 1 - Knowledge Vector DB", lifespan=lifespan)
 
 @app.get("/health")
 def health():
@@ -377,7 +377,7 @@ def reset_db():
     return {"message": "Semua chunk dihapus"}
 ```
 
-### Langkah 10 — Jalankan Server
+### Langkah 10 - Jalankan Server
 
 ```cmd
 uvicorn app.main:app --port 8000 --reload
@@ -385,7 +385,7 @@ uvicorn app.main:app --port 8000 --reload
 
 Buka di browser: **http://localhost:8000/docs**
 
-### Langkah 11 — Uji Coba via Swagger
+### Langkah 11 - Uji Coba via Swagger
 
 1. **`GET /health`** → pastikan `documents_count >= 8` (seed otomatis berhasil)
 
@@ -407,7 +407,7 @@ Buka di browser: **http://localhost:8000/docs**
 
 5. **`GET /stats`** → lihat total chunk yang tersimpan.
 
-### Langkah 12 — Buat `run.bat` untuk Kemudahan
+### Langkah 12 - Buat `run.bat` untuk Kemudahan
 
 ```bat
 @echo off
@@ -418,7 +418,7 @@ pip install -r requirements.txt
 uvicorn app.main:app --port 8000 --reload
 ```
 
-### Langkah 13 — Tulis Unit Test (Opsional)
+### Langkah 13 - Tulis Unit Test (Opsional)
 
 Buat `tests/test_ingest.py`:
 

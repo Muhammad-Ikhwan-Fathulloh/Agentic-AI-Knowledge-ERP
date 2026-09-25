@@ -1,0 +1,29 @@
+version: '3.8'
+
+services:
+  orchestrator:
+    build: .
+    container_name: sesi8_orchestrator
+    ports:
+      - "8000:8000"
+    environment:
+      # Ubah URL ini untuk mengarah ke service Sesi 2, 5, dan 7 di VPS Anda.
+      # Default-nya diarahkan ke IP host VPS jika berjalan di luar docker, 
+      # atau bisa disesuaikan dengan nama service di docker compose terpisah.
+      - KNOWLEDGE_API_BASE=http://172.17.0.1:8001
+      - ERP_API_BASE=http://172.17.0.1:8005
+      - ERP_REPORT_API_BASE=http://172.17.0.1:8007
+      
+      - DUCKDB_PATH=/app/data/orchestrator.duckdb
+      
+      # Pastikan environment variable LLM disesuaikan dengan infrastruktur di VPS.
+      # Llama-server akan dijalankan local oleh llm.py, JIKA binary dan model di mount.
+      # Jika model LLM berjalan terpisah, Anda bisa arahkan base url-nya.
+      - LLAMA_BASE_URL=http://172.17.0.1:8088
+    volumes:
+      # WAJIB untuk persistensi database orchestrator (feedback & semantic cache)
+      - orchestrator_data:/app/data
+    restart: unless-stopped
+
+volumes:
+  orchestrator_data:

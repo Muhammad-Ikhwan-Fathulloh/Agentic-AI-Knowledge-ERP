@@ -1,6 +1,6 @@
 @echo off
 REM =============================================================
-REM  Sesi 8 — Agentic AI Orchestrator (Port 8000)
+REM  Sesi 8 - Agentic AI Orchestrator (Port 8000)
 REM  Akan menjalankan 4 service sekaligus:
 REM    Sesi 2 (KA CRUD 8001)
 REM    Sesi 5 (ERP CRUD 8005)

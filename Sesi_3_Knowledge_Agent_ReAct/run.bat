@@ -1,11 +1,11 @@
 @echo off
 REM =============================================================
-REM  Sesi 3 — Knowledge Agent ReAct  (Port 8002)
+REM  Sesi 3 - Knowledge Agent ReAct  (Port 8002)
 REM
 REM  Knowledge base dikelola LOKAL (DuckDB di folder ini).
 REM  Tidak perlu Sesi 2 (Port 8001) jalan terpisah.
 REM
-REM  Opsional — jika ingin pakai Sesi 2 sebagai sumber data:
+REM  Opsional - jika ingin pakai Sesi 2 sebagai sumber data:
 REM    set USE_LOCAL_DB=false di .env, lalu jalankan Sesi 2 dulu.
 REM
 REM  Pastikan folder `End-to-End LLM Serving/models` berisi file GGUF Qwen.

@@ -37,7 +37,7 @@ class LlamaClient:
             raise RuntimeError(f"llama-server tidak ditemukan di: {self.bin_path}")
             
         if not os.path.isfile(self.model_path):
-            print(f"[WARN] Model GGUF tidak ditemukan di: {self.model_path} — lanjutkan tanpa model lokal.")
+            print(f"[WARN] Model GGUF tidak ditemukan di: {self.model_path} - lanjutkan tanpa model lokal.")
             return
 
         cmd = [

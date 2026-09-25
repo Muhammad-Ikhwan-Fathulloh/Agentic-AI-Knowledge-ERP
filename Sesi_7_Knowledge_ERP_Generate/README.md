@@ -1,4 +1,4 @@
-# Sesi 7 — Knowledge ERP Generate (Laporan Naratif via Qwen)
+# Sesi 7 - Knowledge ERP Generate (Laporan Naratif via Qwen)
 
 ## Ringkasan
 Menggunakan Qwen lokal untuk **mengubah data ERP terstruktur (angka) menjadi narasi bahasa natural** laporan bisnis yang siap kirim / presentasikan.
@@ -21,10 +21,19 @@ run.bat
 ```
 (Otomatis spawning Sesi 5 + Sesi 7)
 
-## Download Model Qwen
-📥 **[Download model GGUF dari Google Drive](https://drive.google.com/drive/folders/16eYzbAx7KOnawHqmnMD6tjshSSCmp6sX?usp=sharing)**
+## Persiapan llama.cpp & Model Lokal
 
-Setelah download, letakkan file `.gguf` di folder `../End-to-End LLM Serving/models/`.
+Proyek ini menggunakan LLM secara lokal (Local AI). Ikuti langkah ini agar LLM bisa berjalan:
+
+**1. Siapkan Binary llama-server**
+- Download *release* terbaru dari **[GitHub llama.cpp releases](https://github.com/ggerganov/llama.cpp/releases)**.
+- Ambil file `llama-server.exe` (di Windows) atau `llama-server` (di Mac/Linux).
+- Letakkan binary tersebut di folder `../End-to-End LLM Serving/backend/bin/`. (Buat foldernya jika belum ada).
+
+**2. Siapkan File Model GGUF**
+📥 **[Download model GGUF dari Google Drive](https://drive.google.com/drive/folders/16eYzbAx7KOnawHqmnMD6tjshSSCmp6sX?usp=sharing)**
+- Letakkan file `.gguf` di folder `../End-to-End LLM Serving/models/`.
+- Periksa isian `LLM_MODEL_GGUF` di `.env` Anda agar persis dengan file model yang terinstal.
 
 ## Struktur
 ```
@@ -39,7 +48,7 @@ Sesi_7_Knowledge_ERP_Generate/
 
 ## Tips Prompt Engineering
 - Karena model kecil (Qwen 0.5B–3B), **sangat eksplisit** dengan format jumlah paragraf/kalimat.
-- Prefilter data: Jangan kirim 100 baris sekaligus — sort + TOP N saja.
+- Prefilter data: Jangan kirim 100 baris sekaligus - sort + TOP N saja.
 - Bila jawaban terlalu pendek / jelek: naïkan `temperature` sedikit (0.4–0.6) dan tambahkan **few-shot example** di prompt.
 
 ---
@@ -48,11 +57,11 @@ Sesi_7_Knowledge_ERP_Generate/
 
 ### Prasyarat Wajib Sebelum Mulai
 
-1. **Sesi 5 ERP CRUD API (port 8005)** — `run.bat` akan spawn Sesi 5 otomatis
+1. **Sesi 5 ERP CRUD API (port 8005)** - `run.bat` akan spawn Sesi 5 otomatis
 2. **Model GGUF Qwen** di folder `../models/`
 3. **Binary `llama-server`** di folder `../bin/`
 
-### Langkah 1 — Setup Folder & Environment
+### Langkah 1 - Setup Folder & Environment
 
 ```cmd
 mkdir Sesi_7_Knowledge_ERP_Generate
@@ -63,7 +72,7 @@ python -m venv .venv
 pip install fastapi uvicorn[standard] pydantic pydantic-settings python-dotenv httpx pytest sentence-transformers
 ```
 
-### Langkah 2 — Buat `.env`
+### Langkah 2 - Buat `.env`
 
 ```env
 ERP_API_BASE=http://127.0.0.1:8005
@@ -83,7 +92,7 @@ DEFAULT_REPORT_DAYS=7
 LOW_STOCK_THRESHOLD=10
 ```
 
-### Langkah 3 — Buat `app/config.py`
+### Langkah 3 - Buat `app/config.py`
 
 ```python
 from pydantic_settings import BaseSettings
@@ -111,7 +120,7 @@ class Settings(BaseSettings):
 settings = Settings()
 ```
 
-### Langkah 4 — Buat `app/report_data.py`
+### Langkah 4 - Buat `app/report_data.py`
 
 HTTP client yang mengambil data dari Sesi 5 ERP API:
 
@@ -133,7 +142,7 @@ class ERPReportData:
         return r.json() if r.status_code == 200 else []
 ```
 
-### Langkah 5 — Buat `app/generators.py` (Prompt Engineering Inti)
+### Langkah 5 - Buat `app/generators.py` (Prompt Engineering Inti)
 
 ```python
 from .llm import llm_complete
@@ -215,7 +224,7 @@ async def generate_low_stock_report(threshold: int = 10) -> str:
     return await llm_complete(prompt, max_tokens=400, temperature=0.4)
 ```
 
-### Langkah 6 — Buat `app/schemas.py` & `app/main.py`
+### Langkah 6 - Buat `app/schemas.py` & `app/main.py`
 
 ```python
 # schemas.py
@@ -249,7 +258,7 @@ async def lifespan(app: FastAPI):
     yield
     stop_llama()
 
-app = FastAPI(title="Sesi 7 — ERP Narrative Report Generator", lifespan=lifespan)
+app = FastAPI(title="Sesi 7 - ERP Narrative Report Generator", lifespan=lifespan)
 
 @app.get("/health")
 def health():
@@ -287,7 +296,7 @@ async def combined_report(days: int = 7, threshold: int = 10):
     }
 ```
 
-### Langkah 7 — Jalankan & Uji
+### Langkah 7 - Jalankan & Uji
 
 ```cmd
 run.bat
@@ -303,21 +312,21 @@ Buka **http://localhost:8007/docs**
    ```json
    { "days": 7 }
    ```
-   Periksa field `narrative` — harus berisi 4 paragraf alami tentang penjualan.
+   Periksa field `narrative` - harus berisi 4 paragraf alami tentang penjualan.
 
 3. **`POST /report/low-stock`:**
    ```json
    { "threshold": 30 }
    ```
-   Periksa `narrative` — harus berisi 6 kalimat notulensi stok, bukan bullet point mentah.
+   Periksa `narrative` - harus berisi 6 kalimat notulensi stok, bukan bullet point mentah.
 
-4. **`GET /report/combined?days=7&threshold=30`** — kedua laporan sekaligus.
+4. **`GET /report/combined?days=7&threshold=30`** - kedua laporan sekaligus.
 
 5. **Eksperimen prompt:**
    - Ubah `temperature` dari `0.4` → `0.7` di `generators.py` → apakah narasi lebih kreatif/bervariasi?
    - Tambahkan satu few-shot example di prompt → apakah format lebih konsisten?
 
-### Langkah 8 — Unit Test (Tanpa LLM)
+### Langkah 8 - Unit Test (Tanpa LLM)
 
 ```python
 # tests/test_generators.py
@@ -393,5 +402,5 @@ Sesi_7_Knowledge_ERP_Generate/
 
 ## Tips Prompt Engineering
 - Karena model kecil (Qwen 0.5B–3B), **sangat eksplisit** dengan format jumlah paragraf/kalimat.
-- Prefilter data: Jangan kirim 100 baris sekaligus — sort + TOP N saja.
+- Prefilter data: Jangan kirim 100 baris sekaligus - sort + TOP N saja.
 - Bila jawaban terlalu pendek / jelek: naïkan `temperature` sedikit (0.4–0.6) dan tambahkan **few-shot example** di prompt.

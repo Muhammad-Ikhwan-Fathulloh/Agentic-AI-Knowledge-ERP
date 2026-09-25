@@ -1,4 +1,4 @@
-# Sesi 6 — Knowledge ERP ReAct Agent (Port 8006)
+# Sesi 6 - Knowledge ERP ReAct Agent (Port 8006)
 
 ## Ringkasan
 Menyambungkan **loop ReAct** dengan **tool registry ERP** (Sesi 5 API). Agent sekarang bisa **melakukan aksi bisnis** bukan cuma mencari informasi.
@@ -23,10 +23,19 @@ run.bat
 ```
 (Otomatis spawning Sesi 5 ERP CRUD + Sesi 6 Agent ReAct)
 
-## Download Model Qwen
-📥 **[Download model GGUF dari Google Drive](https://drive.google.com/drive/folders/16eYzbAx7KOnawHqmnMD6tjshSSCmp6sX?usp=sharing)**
+## Persiapan llama.cpp & Model Lokal
 
-Setelah download, letakkan file `.gguf` di folder `../End-to-End LLM Serving/models/`.
+Proyek ini menggunakan LLM secara lokal (Local AI). Ikuti langkah ini agar LLM bisa berjalan:
+
+**1. Siapkan Binary llama-server**
+- Download *release* terbaru dari **[GitHub llama.cpp releases](https://github.com/ggerganov/llama.cpp/releases)**.
+- Ambil file `llama-server.exe` (di Windows) atau `llama-server` (di Mac/Linux).
+- Letakkan binary tersebut di folder `../End-to-End LLM Serving/backend/bin/`. (Buat foldernya jika belum ada).
+
+**2. Siapkan File Model GGUF**
+📥 **[Download model GGUF dari Google Drive](https://drive.google.com/drive/folders/16eYzbAx7KOnawHqmnMD6tjshSSCmp6sX?usp=sharing)**
+- Letakkan file `.gguf` di folder `../End-to-End LLM Serving/models/`.
+- Periksa isian `LLM_MODEL_GGUF` di `.env` Anda agar persis dengan file model yang terinstal.
 
 ## Endpoint
 | Endpoint           | Method | Body                                               |
@@ -56,11 +65,11 @@ Sesi_6_Knowledge_ERP_ReAct/
 
 ### Prasyarat Wajib Sebelum Mulai
 
-1. **Sesi 5 ERP CRUD API (port 8005) harus bisa distart** — `run.bat` akan spawn Sesi 5 otomatis
+1. **Sesi 5 ERP CRUD API (port 8005) harus bisa distart** - `run.bat` akan spawn Sesi 5 otomatis
 2. **Model GGUF Qwen** di folder `../models/`
 3. **Binary `llama-server`** di folder `../bin/`
 
-### Langkah 1 — Setup Folder & Environment
+### Langkah 1 - Setup Folder & Environment
 
 ```cmd
 mkdir Sesi_6_Knowledge_ERP_ReAct
@@ -71,7 +80,7 @@ python -m venv .venv
 pip install fastapi uvicorn[standard] pydantic pydantic-settings python-dotenv httpx pytest
 ```
 
-### Langkah 2 — Buat `.env`
+### Langkah 2 - Buat `.env`
 
 ```env
 ERP_API_BASE=http://127.0.0.1:8005
@@ -89,7 +98,7 @@ MAX_REACT_STEPS=5
 REQUIRE_HUMAN_CONFIRM_FOR_CREATE_ORDER=true
 ```
 
-### Langkah 3 — Buat `app/config.py`
+### Langkah 3 - Buat `app/config.py`
 
 ```python
 from pydantic_settings import BaseSettings
@@ -115,7 +124,7 @@ class Settings(BaseSettings):
 settings = Settings()
 ```
 
-### Langkah 4 — Buat `app/tools.py` (ERP Tool Registry)
+### Langkah 4 - Buat `app/tools.py` (ERP Tool Registry)
 
 ```python
 import httpx, json
@@ -158,7 +167,7 @@ class ERPTools:
         return "\n".join(lines) if lines else "Tidak ada pelanggan."
 
     def _stage_order(self, json_str: str) -> str:
-        """Stage order — kembalikan data untuk dikonfirmasi user, belum simpan ke DB."""
+        """Stage order - kembalikan data untuk dikonfirmasi user, belum simpan ke DB."""
         try:
             data = json.loads(json_str)
             return (f"[STAGED] Order siap dikonfirmasi:\n"
@@ -189,7 +198,7 @@ class ERPTools:
         return "Order tidak ditemukan."
 ```
 
-### Langkah 5 — Buat `app/react_erp.py`
+### Langkah 5 - Buat `app/react_erp.py`
 
 ```python
 import re, json
@@ -214,7 +223,7 @@ Action Input: <parameter atau jawaban final>
 ATURAN ORDER:
 1. Selalu cek stok dengan check_stock SEBELUM create_order
 2. Selalu ambil customer_id dari list_customers SEBELUM create_order
-3. create_order hanya MENSTAGE order — user harus konfirmasi
+3. create_order hanya MENSTAGE order - user harus konfirmasi
 4. Jika user sudah konfirmasi (confirm_answer=ya), lanjut finalisasi
 """
 
@@ -276,7 +285,7 @@ async def erp_react_loop(query: str, confirm_answer: str = "",
     return f"[Max steps] {final}", steps, False, staged_order
 ```
 
-### Langkah 6 — Buat `app/schemas.py` & `app/main.py`
+### Langkah 6 - Buat `app/schemas.py` & `app/main.py`
 
 ```python
 # schemas.py
@@ -318,7 +327,7 @@ async def lifespan(app: FastAPI):
     yield
     stop_llama()
 
-app = FastAPI(title="Sesi 6 — ERP ReAct Agent", lifespan=lifespan)
+app = FastAPI(title="Sesi 6 - ERP ReAct Agent", lifespan=lifespan)
 
 @app.get("/health")
 def health():
@@ -346,7 +355,7 @@ async def chat(req: ERPChatRequest):
     )
 ```
 
-### Langkah 7 — Jalankan & Uji Percakapan Multi-Turn
+### Langkah 7 - Jalankan & Uji Percakapan Multi-Turn
 
 ```cmd
 run.bat
@@ -356,13 +365,13 @@ Buka **http://localhost:8006/docs** → `POST /agent/chat`
 
 **Skenario lengkap order:**
 
-**Turn 1 — Minta order:**
+**Turn 1 - Minta order:**
 ```json
 { "query": "Saya ingin beli 2 NocMouse Wireless untuk pelanggan Budi Santoso" }
 ```
 Harapan: agent memanggil `list_customers` → `check_stock` → `create_order` → response `need_human_confirm: true`
 
-**Turn 2 — Konfirmasi:**
+**Turn 2 - Konfirmasi:**
 ```json
 {
   "query": "lanjutkan pesanan",
@@ -373,7 +382,7 @@ Harapan: order disimpan ke Sesi 5, response `"✅ Order berhasil!"`
 
 **Verifikasi di Sesi 5:** buka `http://localhost:8005/docs` → `GET /orders` → pastikan order tadi muncul dengan `status: pending`.
 
-### Langkah 8 — Unit Test Parser
+### Langkah 8 - Unit Test Parser
 
 ```python
 # tests/test_erp_react.py

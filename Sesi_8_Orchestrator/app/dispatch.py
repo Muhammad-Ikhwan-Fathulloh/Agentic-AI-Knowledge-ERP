@@ -35,7 +35,7 @@ def extract_json(text):
 
 
 async def dispatch_knowledge(query: str, temperature: float = 0.2):
-    """Bisa planner atau react — default planner. Kalau LLM tidak siap, fallback ke rule + search langsung."""
+    """Bisa planner atau react - default planner. Kalau LLM tidak siap, fallback ke rule + search langsung."""
     ka_url = settings.knowledge_api_base
     client = httpx.Client(timeout=30.0)
 
@@ -75,13 +75,13 @@ async def dispatch_knowledge(query: str, temperature: float = 0.2):
 ERP_SYSTEM = """Kamu AGENT ERP toko online.
 
 TOOL TERSEDIA (panggil via Action/Action Input):
-- list_products — tanpa param
-- check_stock — JSON {"product_name":"..."}
-- list_customers — tanpa param
-- get_order_status — JSON {"order_id":"..."}
-- create_order — JSON {"customer_id":"...", "product_id":"...", "qty": N}
-- sales_report — JSON {"days": N} atau tanpa param
-- FINISH — Action Input = jawaban final ke user
+- list_products - tanpa param
+- check_stock - JSON {"product_name":"..."}
+- list_customers - tanpa param
+- get_order_status - JSON {"order_id":"..."}
+- create_order - JSON {"customer_id":"...", "product_id":"...", "qty": N}
+- sales_report - JSON {"days": N} atau tanpa param
+- FINISH - Action Input = jawaban final ke user
 
 FORMAT:
 Thought: ...
@@ -114,7 +114,7 @@ def _erp_tool(action, ai, erp_url, report_url) -> str:
         if action == "check_stock":
             rows = client.get(f"{erp_url}/products", params={"name": params.get("product_name","")}).json()
             if not rows: return "(tidak ketemu)"
-            return "\n".join(f"- {r['name']} — stok: {r['stock']}, harga: Rp{r['price']:,.0f}, id: {r['id']}" for r in rows)
+            return "\n".join(f"- {r['name']} - stok: {r['stock']}, harga: Rp{r['price']:,.0f}, id: {r['id']}" for r in rows)
         if action == "list_customers":
             rows = client.get(f"{erp_url}/customers").json()
             return "\n".join(f"- {r['name']} | email:{r.get('email')} | id:{r['id']}" for r in rows[:15])

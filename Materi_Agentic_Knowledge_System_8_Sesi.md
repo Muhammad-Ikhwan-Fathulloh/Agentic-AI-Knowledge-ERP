@@ -1,28 +1,28 @@
-# Agentic Knowledge System — FastAPI + DuckDB + Qwen (Local, 100% Offline-Capable)
+# Agentic Knowledge System - FastAPI + DuckDB + Qwen (Local, 100% Offline-Capable)
 
-**Referensi:** [End-to-End-LLM-Serving](https://github.com/Muhammad-Ikhwan-Fathulloh/End-to-End-LLM-Serving) — diadaptasi dari pola *RAG + semantic layer* pada repo tersebut (yang aslinya pakai PostgreSQL/pgvector) menjadi versi **ringan berbasis DuckDB** (embedded, cocok untuk lab/bootcamp tanpa server DB terpisah). Seluruh reasoning memakai **Qwen 2.5 lokal** (via `llama.cpp`/`llama-cpp-python`, GGUF) — tidak ada dependensi ke LLM cloud/API berbayar, sehingga cocok untuk data sensitif dan environment tanpa akses internet stabil.
+**Referensi:** [End-to-End-LLM-Serving](https://github.com/Muhammad-Ikhwan-Fathulloh/End-to-End-LLM-Serving) - diadaptasi dari pola *RAG + semantic layer* pada repo tersebut (yang aslinya pakai PostgreSQL/pgvector) menjadi versi **ringan berbasis DuckDB** (embedded, cocok untuk lab/bootcamp tanpa server DB terpisah). Seluruh reasoning memakai **Qwen 2.5 lokal** (via `llama.cpp`/`llama-cpp-python`, GGUF) - tidak ada dependensi ke LLM cloud/API berbayar, sehingga cocok untuk data sensitif dan environment tanpa akses internet stabil.
 
 ## Peta Besar Kurikulum
 
 Kurikulum ini punya **2 domain paralel** yang dibangun dengan pola yang sama (CRUD → ReAct → LLM Reasoning/Generate), lalu digabung di sesi terakhir:
 
-| Domain | Fokus | Sesi |
-|---|---|---|
-| **Knowledge Agent** | Basis pengetahuan bebas (dokumen, FAQ, artikel) + RAG | 1–4 |
-| **Knowledge ERP** | Data transaksional/bisnis (produk, stok, order) + agent aksi | 5–7 |
-| **Integrasi** | Menyatukan kedua agent jadi satu orchestrator | 8 |
+| Domain              | Fokus                                                        | Sesi |
+| ------------------- | ------------------------------------------------------------ | ---- |
+| **Knowledge Agent** | Basis pengetahuan bebas (dokumen, FAQ, artikel) + RAG        | 1–4  |
+| **Knowledge ERP**   | Data transaksional/bisnis (produk, stok, order) + agent aksi | 5–7  |
+| **Integrasi**       | Menyatukan kedua agent jadi satu orchestrator                | 8    |
 
 **Stack teknis dipakai konsisten di semua sesi:**
-- **FastAPI** — REST API & tool-serving layer
-- **DuckDB** — penyimpanan data + vector search (ekstensi `vss`), embedded, file `.duckdb`
-- **Qwen 2.5 (GGUF, via llama.cpp/llama-cpp-python)** — satu-satunya LLM di seluruh kurikulum, dipakai dengan **dua pola prompting berbeda**:
-  - **ReAct loop** (Sesi 3, 6) — reasoning iteratif berbasis teks bebas (`Thought/Action/Observation`).
-  - **Structured/JSON prompting** (Sesi 4, 7, 8) — Qwen dipaksa mengeluarkan output JSON terstruktur untuk emulasi *function calling*, lalu di-parse dan dieksekusi oleh kode Python (karena model kecil seperti Qwen 0.5B–7B tidak punya native function calling seperti model cloud besar).
-- **Sentence-Transformers / text-embedding model** — untuk embedding dokumen
+- **FastAPI** - REST API & tool-serving layer
+- **DuckDB** - penyimpanan data + vector search (ekstensi `vss`), embedded, file `.duckdb`
+- **Qwen 2.5 (GGUF, via llama.cpp/llama-cpp-python)** - satu-satunya LLM di seluruh kurikulum, dipakai dengan **dua pola prompting berbeda**:
+  - **ReAct loop** (Sesi 3, 6) - reasoning iteratif berbasis teks bebas (`Thought/Action/Observation`).
+  - **Structured/JSON prompting** (Sesi 4, 7, 8) - Qwen dipaksa mengeluarkan output JSON terstruktur untuk emulasi *function calling*, lalu di-parse dan dieksekusi oleh kode Python (karena model kecil seperti Qwen 0.5B–7B tidak punya native function calling seperti model cloud besar).
+- **Sentence-Transformers / text-embedding model** - untuk embedding dokumen
 
 ---
 
-## Sesi 1 — Prepare Data Knowledge & Create Vector DB
+## Sesi 1 - Prepare Data Knowledge & Create Vector DB
 
 ### Tujuan Pembelajaran
 - Peserta memahami pipeline data untuk RAG: ingest → chunking → embedding → simpan vektor.
@@ -31,7 +31,7 @@ Kurikulum ini punya **2 domain paralel** yang dibangun dengan pola yang sama (CR
 ### Konsep Kunci
 - Kenapa perlu vector DB (semantic search vs keyword search).
 - Chunking strategy (fixed-size vs recursive/semantic chunking) dan trade-off ukuran chunk.
-- Embedding model: pakai model lokal seperti `sentence-transformers` (offline, gratis) — bahas trade-off ukuran model vs kualitas embedding.
+- Embedding model: pakai model lokal seperti `sentence-transformers` (offline, gratis) - bahas trade-off ukuran model vs kualitas embedding.
 - Skema tabel DuckDB untuk dokumen + metadata + vektor.
 
 ### Arsitektur
@@ -112,7 +112,7 @@ LIMIT 5;
 
 ---
 
-## Sesi 2 — Knowledge Agent: CRUD REST API
+## Sesi 2 - Knowledge Agent: CRUD REST API
 
 ### Tujuan Pembelajaran
 - Membungkus tabel `documents` di Sesi 1 menjadi REST API penuh (Create, Read, Update, Delete, Search) memakai FastAPI.
@@ -185,7 +185,7 @@ API `port 8001` lengkap CRUD + search, terdokumentasi via OpenAPI, siap dipakai 
 
 ---
 
-## Sesi 3 — Knowledge Agent: Prompting ReAct
+## Sesi 3 - Knowledge Agent: Prompting ReAct
 
 ### Tujuan Pembelajaran
 - Peserta memahami pola **ReAct** (Reason → Act → Observe → repeat) untuk agent yang memanggil API sebagai *tool*.
@@ -274,14 +274,14 @@ Fungsi `react_loop()` yang bisa menjawab pertanyaan berbasis knowledge base deng
 
 ---
 
-## Sesi 4 — Knowledge Agent dengan LLM Reasoning (Qwen — Structured Prompting)
+## Sesi 4 - Knowledge Agent dengan LLM Reasoning (Qwen - Structured Prompting)
 
 ### Tujuan Pembelajaran
 - Peserta memahami pola **structured/JSON prompting** sebagai alternatif ReAct free-text (Sesi 3) untuk mengemulasi *function calling* pada model lokal kecil.
 - Peserta bisa membandingkan trade-off dua gaya prompting: ReAct iteratif vs single-shot planner + JSON schema.
 
 ### Konsep Kunci
-- Model kecil seperti Qwen 0.5B–7B tidak punya native function calling (beda dari model cloud besar) — solusinya: paksa output JSON dengan instruksi ketat + validasi/parsing yang toleran (`json.loads` dengan fallback regex).
+- Model kecil seperti Qwen 0.5B–7B tidak punya native function calling (beda dari model cloud besar) - solusinya: paksa output JSON dengan instruksi ketat + validasi/parsing yang toleran (`json.loads` dengan fallback regex).
 - Pola *planner-executor*: satu prompt untuk memutuskan tool + parameter (`need_tool`, `tool`, `args`), lalu satu prompt terpisah untuk menyusun jawaban akhir dari hasil tool.
 - Retry strategy ketika output JSON tidak valid (re-prompt dengan pesan error).
 
@@ -325,7 +325,7 @@ Jawaban:"""
 
 ### Latihan
 1. Tambahkan retry: jika `extract_json` mengembalikan `None`, re-prompt Qwen dengan pesan "Output sebelumnya tidak valid JSON, ulangi." (maksimal 2x).
-2. Bandingkan 5 pertanyaan yang sama antara `react_loop` (Sesi 3, iteratif) dan `qwen_reasoning_agent` (single-shot planner) — catat jumlah pemanggilan LLM, latency, dan kualitas jawaban.
+2. Bandingkan 5 pertanyaan yang sama antara `react_loop` (Sesi 3, iteratif) dan `qwen_reasoning_agent` (single-shot planner) - catat jumlah pemanggilan LLM, latency, dan kualitas jawaban.
 3. Diskusikan: untuk kasus apa pola ReAct lebih unggul (butuh banyak langkah/informasi bertahap), dan untuk kasus apa planner tunggal sudah cukup?
 
 ### Deliverable
@@ -333,13 +333,13 @@ Fungsi `qwen_reasoning_agent()` yang berjalan tanpa loop berulang (1–2 kali pa
 
 ---
 
-## Sesi 5 — Knowledge ERP: CRUD REST API
+## Sesi 5 - Knowledge ERP: CRUD REST API
 
 ### Tujuan Pembelajaran
 - Membangun domain kedua: data ERP sederhana (produk, stok, pelanggan, order) dengan DuckDB + FastAPI, sebagai fondasi *action-taking agent* (bukan cuma retrieval seperti Sesi 1–4).
 
 ### Konsep Kunci
-- Perbedaan Knowledge Agent (baca dokumen) vs Knowledge ERP (baca **dan** menulis data transaksional — perlu validasi lebih ketat).
+- Perbedaan Knowledge Agent (baca dokumen) vs Knowledge ERP (baca **dan** menulis data transaksional - perlu validasi lebih ketat).
 - Relasi antar tabel di DuckDB (products, customers, orders, order_items).
 
 ### Skema Data
@@ -414,7 +414,7 @@ API ERP (`port 8005`) dengan CRUD produk, pelanggan, order, siap dipakai sebagai
 
 ---
 
-## Sesi 6 — Knowledge ERP: Prompting ReAct
+## Sesi 6 - Knowledge ERP: Prompting ReAct
 
 ### Tujuan Pembelajaran
 - Menghubungkan ReAct loop (pola Sesi 3) ke tool-tool ERP (Sesi 5), sehingga agent bisa **melakukan aksi** (buat order, cek stok) bukan cuma mencari informasi.
@@ -461,7 +461,7 @@ Loop utamanya sama seperti `react_loop()` di Sesi 3, hanya `call_tool` diganti `
 
 ### Latihan
 1. Tambahkan langkah **konfirmasi manusia** (human-in-the-loop) sebelum `create_order` benar-benar dieksekusi.
-2. Uji kasus stok tidak cukup — pastikan agent menjawab dengan sopan, bukan error mentah.
+2. Uji kasus stok tidak cukup - pastikan agent menjawab dengan sopan, bukan error mentah.
 3. Log setiap `Action` + `Observation` ke tabel `agent_logs` di DuckDB untuk audit trail.
 
 ### Deliverable
@@ -469,10 +469,10 @@ Loop utamanya sama seperti `react_loop()` di Sesi 3, hanya `call_tool` diganti `
 
 ---
 
-## Sesi 7 — Knowledge ERP dengan LLM Generate (Qwen)
+## Sesi 7 - Knowledge ERP dengan LLM Generate (Qwen)
 
 ### Tujuan Pembelajaran
-- Memakai Qwen lokal bukan untuk tool-calling saja, tapi untuk **generate** — ringkasan laporan, insight, narasi dari data ERP mentah, sepenuhnya on-premise.
+- Memakai Qwen lokal bukan untuk tool-calling saja, tapi untuk **generate** - ringkasan laporan, insight, narasi dari data ERP mentah, sepenuhnya on-premise.
 
 ### Konsep Kunci
 - Perbedaan *reasoning agent* (Sesi 4/6, menentukan aksi) vs *generative reporting* (mengubah data terstruktur jadi narasi/insight bahasa natural).
@@ -506,14 +506,14 @@ Jangan mengulang data mentah, langsung ke insight."""
 ### Latihan
 1. Tambahkan endpoint `GET /erp/report/weekly` yang memanggil `generate_sales_report()`.
 2. Buat versi laporan untuk stok kritis (produk dengan stok < 10).
-3. Bandingkan: laporan yang dibuat manual (SQL only) vs versi narasi Qwen — diskusikan kualitas bahasa yang dihasilkan model kecil, dan trik prompting apa yang membantu (few-shot example, batasan panjang, dsb).
+3. Bandingkan: laporan yang dibuat manual (SQL only) vs versi narasi Qwen - diskusikan kualitas bahasa yang dihasilkan model kecil, dan trik prompting apa yang membantu (few-shot example, batasan panjang, dsb).
 
 ### Deliverable
 Endpoint laporan otomatis berbasis data DuckDB + narasi Qwen lokal, contoh output untuk minimal 2 jenis laporan (penjualan, stok).
 
 ---
 
-## Sesi 8 — Finalize Agentic AI
+## Sesi 8 - Finalize Agentic AI
 
 ### Tujuan Pembelajaran
 - Menggabungkan **Knowledge Agent** (Sesi 1–4) dan **Knowledge ERP** (Sesi 5–7) menjadi satu orchestrator agent, lengkap dengan routing, evaluasi, dan dokumentasi akhir.
@@ -540,11 +540,11 @@ Endpoint laporan otomatis berbasis data DuckDB + narasi Qwen lokal, contoh outpu
                         Final Answer to User
 ```
 
-### Implementasi Inti (router berbasis Qwen — structured prompting)
+### Implementasi Inti (router berbasis Qwen - structured prompting)
 ```python
 ROUTER_PROMPT = """Klasifikasikan pertanyaan berikut ke salah satu domain dalam format JSON PERSIS:
-{{"domain": "knowledge"}} — untuk pertanyaan informasi umum/dokumen (FAQ, SOP, kebijakan)
-{{"domain": "erp"}} — untuk pertanyaan data transaksional (stok, harga, order, laporan penjualan)
+{{"domain": "knowledge"}} - untuk pertanyaan informasi umum/dokumen (FAQ, SOP, kebijakan)
+{{"domain": "erp"}} - untuk pertanyaan data transaksional (stok, harga, order, laporan penjualan)
 
 Pertanyaan: {query}
 JSON:"""
@@ -576,7 +576,7 @@ def orchestrate(query: str):
 
 ### Deliverable Akhir
 1. Repo terstruktur (`backend/knowledge_agent`, `backend/knowledge_erp`, `frontend/`, `docker-compose.yml`).
-2. Orchestrator agent yang bisa menjawab kombinasi pertanyaan (misal: "Apa itu produk X?" → knowledge; "Stok produk X berapa?" → ERP) — seluruhnya berjalan dengan satu model Qwen lokal, tanpa dependensi ke LLM cloud.
+2. Orchestrator agent yang bisa menjawab kombinasi pertanyaan (misal: "Apa itu produk X?" → knowledge; "Stok produk X berapa?" → ERP) - seluruhnya berjalan dengan satu model Qwen lokal, tanpa dependensi ke LLM cloud.
 3. Laporan evaluasi singkat (markdown) merangkum akurasi routing dan perbandingan pola ReAct vs structured prompting.
 
 ---
@@ -605,7 +605,7 @@ project/
 
 ---
 
-# LAMPIRAN A — Implementasi Produksi Riil (Folder per-Sesi)
+# LAMPIRAN A - Implementasi Produksi Riil (Folder per-Sesi)
 
 Untuk melengkapi notebook, setiap sesi (mulai Sesi 2) sekarang punya **folder kode standalone production-ready**
 dengan pola struktur **identik** (mirip `Sesi_2/` yang sudah ada), diadaptasi dari pola
@@ -633,15 +633,15 @@ Sesi_<Nama>/
 
 ## Daftar Folder Implementasi + Port + Mapping End-to-End LLM Serving
 
-| Sesi | Folder Implementasi | Port App | Port LLM | Pola yang Diadopsi dari E2E LLM Serving |
-|---|---|---|---|---|
-| 2 | `Sesi_2/` (sebelumnya sudah ada) | **8001** | - | REST API + Pydantic Validator (pola dasar semua service) |
-| 3 | `Sesi_3_Knowledge_Agent_ReAct/` | **8002** | 8080 | **P1 Basic LLM**: `lifespan` start/stop llama-server, health check, `/completion` wrapper |
-| 4 | `Sesi_4_Knowledge_Agent_Planner/` | **8003** | 8081 | Pola `P1 + Structured JSON Prompting` + retry mechanism |
-| 5 | `Sesi_5_Knowledge_ERP_CRUD/` | **8005** | - | DuckDB embedded schema + validasi stok (business logic di layer database.py) |
-| 6 | `Sesi_6_Knowledge_ERP_ReAct/` | **8006** | 8082 | Tool Registry HTTP Client (mirip cara P3/P4 panggil internal API) |
-| 7 | `Sesi_7_Knowledge_ERP_Generate/` | **8007** | 8083 | Prompt Engineering laporan naratif (P1 pola generation + template prompt ketat) |
-| 8 | `Sesi_8_Orchestrator/` | **8000** | 8088 | **P3 Semantic Cache** (DuckDB VSS menggantikan pgvector) + **P4 Feedback Loop** (interactions table + like/dislike) + Router LLM + Dispatch Agent |
+| Sesi | Folder Implementasi               | Port App | Port LLM | Pola yang Diadopsi dari E2E LLM Serving                                                                                                           |
+| ---- | --------------------------------- | -------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2    | `Sesi_2/` (sebelumnya sudah ada)  | **8001** | -        | REST API + Pydantic Validator (pola dasar semua service)                                                                                          |
+| 3    | `Sesi_3_Knowledge_Agent_ReAct/`   | **8002** | 8080     | **P1 Basic LLM**: `lifespan` start/stop llama-server, health check, `/completion` wrapper                                                         |
+| 4    | `Sesi_4_Knowledge_Agent_Planner/` | **8003** | 8081     | Pola `P1 + Structured JSON Prompting` + retry mechanism                                                                                           |
+| 5    | `Sesi_5_Knowledge_ERP_CRUD/`      | **8005** | -        | DuckDB embedded schema + validasi stok (business logic di layer database.py)                                                                      |
+| 6    | `Sesi_6_Knowledge_ERP_ReAct/`     | **8006** | 8082     | Tool Registry HTTP Client (mirip cara P3/P4 panggil internal API)                                                                                 |
+| 7    | `Sesi_7_Knowledge_ERP_Generate/`  | **8007** | 8083     | Prompt Engineering laporan naratif (P1 pola generation + template prompt ketat)                                                                   |
+| 8    | `Sesi_8_Orchestrator/`            | **8000** | 8088     | **P3 Semantic Cache** (DuckDB VSS menggantikan pgvector) + **P4 Feedback Loop** (interactions table + like/dislike) + Router LLM + Dispatch Agent |
 
 ## Cara Menjalankan Full Stack (End to End)
 
@@ -652,26 +652,26 @@ run.bat
 ```
 
 Yang dijalankan script secara otomatis:
-1. `Sesi_2 (8001)` — Knowledge CRUD + vector search
-2. `Sesi_5 (8005)` — ERP CRUD + validasi stok
-3. `Sesi_7 (8007)` — Narrative Report Generator via Qwen
-4. `Sesi_8 (8000)` — Orchestrator utama (user pakai ini): Router → Cache → Dispatch → Feedback
+1. `Sesi_2 (8001)` - Knowledge CRUD + vector search
+2. `Sesi_5 (8005)` - ERP CRUD + validasi stok
+3. `Sesi_7 (8007)` - Narrative Report Generator via Qwen
+4. `Sesi_8 (8000)` - Orchestrator utama (user pakai ini): Router → Cache → Dispatch → Feedback
 
 Swagger UI endpoint utama: **`http://localhost:8000/docs`**
-- `POST /agent/orchestrate` — kirim query, dapat jawaban end-to-end.
-- `POST /agent/feedback` — `{interaction_id, is_like: true/false}`
-- `GET /agent/stats` — total interaksi, likes, cache entries.
+- `POST /agent/orchestrate` - kirim query, dapat jawaban end-to-end.
+- `POST /agent/feedback` - `{interaction_id, is_like: true/false}`
+- `GET /agent/stats` - total interaksi, likes, cache entries.
 
 ---
 
-# LAMPIRAN B — Checklist Evaluasi Kualitas (Rubrik Penilaian)
+# LAMPIRAN B - Checklist Evaluasi Kualitas (Rubrik Penilaian)
 
-| Komponen | Bobot | 1 (Kurang) | 3 (Cukup) | 5 (Sangat Baik) |
-|---|---|---|---|---|
-| **Domain Routing Accuracy** (10 skenario) | 25% | < 6/10 benar | 7–8/10 benar | 9–10/10 benar (fallback rule tetap akurat walau LLM gagal) |
-| **Semantic Cache Hit Rate** | 10% | < 10% | 30–50% | > 50% untuk FAQ / query berulang |
-| **ReAct Step Efficiency** | 15% | > 5 langkah / gagal FINISH | 3–4 langkah | ≤ 2 langkah untuk task sederhana |
-| **Planner JSON Validity** | 10% | Sering gagal parse | Retry 1x lolos | Selalu valid tanpa retry |
-| **ERP Create Order Guardrail** | 15% | Langsung eksekusi tanpa confirm | Konfirmasi tapi tidak log | Human-in-the-loop + log audit jelas |
-| **Narrative Report Quality** | 15% | Hanya ulang angka | 3 paragraf bagus | 4 paragraf + rekomendasi actionable + bahasa formal |
-| **Code Structure (app/config/tests)** | 10% | Semua logic di main.py | 2–3 modul terpisah | ≥ 5 modul: config/schemas/db/tools/router/dispatch, tests lulus pytest |
+| Komponen                                  | Bobot | 1 (Kurang)                      | 3 (Cukup)                 | 5 (Sangat Baik)                                                        |
+| ----------------------------------------- | ----- | ------------------------------- | ------------------------- | ---------------------------------------------------------------------- |
+| **Domain Routing Accuracy** (10 skenario) | 25%   | < 6/10 benar                    | 7–8/10 benar              | 9–10/10 benar (fallback rule tetap akurat walau LLM gagal)             |
+| **Semantic Cache Hit Rate**               | 10%   | < 10%                           | 30–50%                    | > 50% untuk FAQ / query berulang                                       |
+| **ReAct Step Efficiency**                 | 15%   | > 5 langkah / gagal FINISH      | 3–4 langkah               | ≤ 2 langkah untuk task sederhana                                       |
+| **Planner JSON Validity**                 | 10%   | Sering gagal parse              | Retry 1x lolos            | Selalu valid tanpa retry                                               |
+| **ERP Create Order Guardrail**            | 15%   | Langsung eksekusi tanpa confirm | Konfirmasi tapi tidak log | Human-in-the-loop + log audit jelas                                    |
+| **Narrative Report Quality**              | 15%   | Hanya ulang angka               | 3 paragraf bagus          | 4 paragraf + rekomendasi actionable + bahasa formal                    |
+| **Code Structure (app/config/tests)**     | 10%   | Semua logic di main.py          | 2–3 modul terpisah        | ≥ 5 modul: config/schemas/db/tools/router/dispatch, tests lulus pytest |

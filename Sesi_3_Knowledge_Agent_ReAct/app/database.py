@@ -1,5 +1,5 @@
 """
-app/database.py — Knowledge base lokal Sesi 3.
+app/database.py - Knowledge base lokal Sesi 3.
 Disalin dan disesuaikan dari Sesi 2 agar Sesi 3 dapat berjalan mandiri
 tanpa harus menjalankan service Sesi 2 (port 8001) secara terpisah.
 
@@ -13,7 +13,7 @@ from app.config import settings
 from app.embeddings import encode
 
 # ---------------------------------------------------------------------------
-# Seed data — identik dengan Sesi 2 agar knowledge base konsisten
+# Seed data - identik dengan Sesi 2 agar knowledge base konsisten
 # ---------------------------------------------------------------------------
 SEED_DATA = [
     ("FAQ_Produk_NocBook",
@@ -88,7 +88,7 @@ def chunk_text(text: str, size: int = 400, overlap: int = 80) -> list[str]:
 
 
 # ---------------------------------------------------------------------------
-# DocStore — interface tunggal ke DuckDB
+# DocStore - interface tunggal ke DuckDB
 # ---------------------------------------------------------------------------
 class DocStore:
     def __init__(self):

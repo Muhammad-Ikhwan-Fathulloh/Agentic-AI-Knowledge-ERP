@@ -1,4 +1,4 @@
-# Sesi 4 — Knowledge Agent Planner-Executor (Structured JSON)
+# Sesi 4 - Knowledge Agent Planner-Executor (Structured JSON)
 
 ## Ringkasan
 Alternatif dari loop ReAct: agent melakukan **dua call LLM saja**:
@@ -10,34 +10,35 @@ Pola ini lebih **cepat** dan stabil untuk FAQ / task satu-langkah, tapi kurang f
 ---
 
 ## Daftar Isi
-- [Sesi 4 — Knowledge Agent Planner-Executor (Structured JSON)](#sesi-4--knowledge-agent-planner-executor-structured-json)
+- [Sesi 4 - Knowledge Agent Planner-Executor (Structured JSON)](#sesi-4--knowledge-agent-planner-executor-structured-json)
   - [Ringkasan](#ringkasan)
   - [Daftar Isi](#daftar-isi)
-  - [Planner-Executor Pattern — Konsep \& Arsitektur](#planner-executor-pattern--konsep--arsitektur)
+  - [Planner-Executor Pattern - Konsep \& Arsitektur](#planner-executor-pattern--konsep--arsitektur)
     - [Definisi](#definisi)
     - [Konteks Sejarah: Mengapa Planner Dibutuhkan?](#konteks-sejarah-mengapa-planner-dibutuhkan)
     - [Arsitektur 3 Fase](#arsitektur-3-fase)
   - [Head-to-Head: Planner (Sesi 4) vs ReAct (Sesi 3)](#head-to-head-planner-sesi-4-vs-react-sesi-3)
     - [Perbandingan Kuantitatif (Dari Pengujian 50 Pertanyaan FAQ + 20 Multi-Topik)](#perbandingan-kuantitatif-dari-pengujian-50-pertanyaan-faq--20-multi-topik)
   - [Alir Kerja Planner + JSON Prompting (Diagram Detail)](#alir-kerja-planner--json-prompting-diagram-detail)
-  - [Mengapa JSON? — Structured Prompting untuk Function Calling Emulation](#mengapa-json--structured-prompting-untuk-function-calling-emulation)
+  - [Mengapa JSON? - Structured Prompting untuk Function Calling Emulation](#mengapa-json--structured-prompting-untuk-function-calling-emulation)
     - [Native Function Calling Tidak Ada di Qwen Kecil](#native-function-calling-tidak-ada-di-qwen-kecil)
     - [Mengapa Tidak Tetap Pakai Label ReAct untuk Planner?](#mengapa-tidak-tetap-pakai-label-react-untuk-planner)
   - [Pembedahan `PLANNER_PROMPT` dan `ANSWER_PROMPT`](#pembedahan-planner_prompt-dan-answer_prompt)
-    - [`PLANNER_PROMPT` — Instruksi untuk Keputusan Awal](#planner_prompt--instruksi-untuk-keputusan-awal)
+    - [`PLANNER_PROMPT` - Instruksi untuk Keputusan Awal](#planner_prompt--instruksi-untuk-keputusan-awal)
       - [Kenapa Setiap Baris Ditulis Seperti Itu?](#kenapa-setiap-baris-ditulis-seperti-itu)
-    - [`ANSWER_PROMPT` — Instruksi untuk Narasi Jawaban](#answer_prompt--instruksi-untuk-narasi-jawaban)
+    - [`ANSWER_PROMPT` - Instruksi untuk Narasi Jawaban](#answer_prompt--instruksi-untuk-narasi-jawaban)
       - [Aturan Kunci dalam Answer Prompt](#aturan-kunci-dalam-answer-prompt)
   - [JSON Extraction (`extract_json`) + Retry Mechanism Dijelaskan](#json-extraction-extract_json--retry-mechanism-dijelaskan)
     - [Langkah 1: Regex `\{.*\}` dengan `re.DOTALL`](#langkah-1-regex--dengan-redotall)
-    - [Langkah 2: `json.loads()` — Validasi Sintaks Ketat](#langkah-2-jsonloads--validasi-sintaks-ketat)
+    - [Langkah 2: `json.loads()` - Validasi Sintaks Ketat](#langkah-2-jsonloads--validasi-sintaks-ketat)
     - [Retry Loop Planner](#retry-loop-planner)
     - [Fallback Akhir: Default `need_tool=False`](#fallback-akhir-default-need_toolfalse)
   - [Kapan Pakai Planner? Kapan Pakai ReAct? (Decision Tree)](#kapan-pakai-planner-kapan-pakai-react-decision-tree)
   - [Contoh Output Riil: Perbandingan Format ReAct vs Planner](#contoh-output-riil-perbandingan-format-react-vs-planner)
     - [Pertanyaan yang sama: *"Apa kebijakan refund produk NocBook?"*](#pertanyaan-yang-sama-apa-kebijakan-refund-produk-nocbook)
   - [Prasyarat](#prasyarat)
-  - [Download Model Qwen](#download-model-qwen)
+  - [Prasyarat](#prasyarat)
+  - [Persiapan llama.cpp & Model Lokal](#persiapan-llamacpp--model-lokal)
   - [Cara Run](#cara-run)
   - [Endpoint](#endpoint)
   - [Struktur](#struktur)
@@ -45,12 +46,12 @@ Pola ini lebih **cepat** dan stabil untuk FAQ / task satu-langkah, tapi kurang f
 
 ---
 
-## Planner-Executor Pattern — Konsep & Arsitektur
+## Planner-Executor Pattern - Konsep & Arsitektur
 
 ### Definisi
 **Planner-Executor** (atau juga disebut **Single-Shot Planner + Dispatched Execution**) adalah paradigma agent dengan pemisahan peran tegas:
-- **Planner Phase** (fase perencana): Satu LLM call untuk memutuskan **apakah butuh tool**, **tool mana**, dan **parameternya** — semuanya dikeluarkan sekaligus dalam format JSON.
-- **Execution Phase** (fase eksekusi): Menjalankan tool secara deterministik (bukan LLM yang menjalankan — Python yang menjalankan). Tool dijalankan 0 atau 1 kali saja.
+- **Planner Phase** (fase perencana): Satu LLM call untuk memutuskan **apakah butuh tool**, **tool mana**, dan **parameternya** - semuanya dikeluarkan sekaligus dalam format JSON.
+- **Execution Phase** (fase eksekusi): Menjalankan tool secara deterministik (bukan LLM yang menjalankan - Python yang menjalankan). Tool dijalankan 0 atau 1 kali saja.
 - **Answer Phase** (fase jawab): Satu LLM call lagi untuk menyusun jawaban final dari observation + pertanyaan asli.
 
 Perbedaannya dengan ReAct paling mendasar: **Planner tidak punya loop**. Tidak ada "berpikir lagi setelah observation". Semua keputusan tool diambil *di awal*, sekaligus.
@@ -64,7 +65,7 @@ ReAct (Sesi 3) sangat fleksibel, tapi punya 3 kelemahan praktis untuk FAQ / chat
 
 Planner-Executor mengorbankan sebagian fleksibilitas ReAct demi **kecepatan dan stabilitas**, karena:
 - Hanya 1–2 LLM call (bukan loop variabel).
-- Output planner adalah JSON — jauh lebih mudah di-validate dan di-audit daripada free-text ReAct.
+- Output planner adalah JSON - jauh lebih mudah di-validate dan di-audit daripada free-text ReAct.
 - Logic eksekusi tool 100% di Python (deterministik), bukan "terserah LLM" seperti di ReAct loop.
 
 ### Arsitektur 3 Fase
@@ -100,7 +101,7 @@ Planner-Executor mengorbankan sebagian fleksibilitas ReAct demi **kecepatan dan 
 └─────────────────────────────────────────────────────────────────────┘
 ```
 
-Fase 2 (execution) 100% deterministik — tidak ada LLM di sana! Ini kunci stabilitas pola planner.
+Fase 2 (execution) 100% deterministik - tidak ada LLM di sana! Ini kunci stabilitas pola planner.
 
 ---
 
@@ -110,9 +111,9 @@ Perbandingan menyeluruh untuk dua pola prompting pada **model Qwen yang sama** (
 
 | Dimensi                       | Planner (Sesi 4)                                                                                                      | ReAct (Sesi 3)                                                                                   |
 | ----------------------------- | --------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
-| **Jumlah LLM Call**           | **1–2 call (tetap)** — Planner ± optional Answer                                                                      | **2–N call (variabel)** — bergantung pada jumlah step                                            |
+| **Jumlah LLM Call**           | **1–2 call (tetap)** - Planner ± optional Answer                                                                      | **2–N call (variabel)** - bergantung pada jumlah step                                            |
 | **Latensi Tipikal**           | **2–6 detik** (hampir konstan)                                                                                        | **4–20+ detik** (bertambah tiap step)                                                            |
-| **Token Usage**               | **Lebih sedikit (30–50%)** — tidak ada history yang membesar                                                          | **Lebih banyak** — history ReAct dikirim ulang tiap iterasi                                      |
+| **Token Usage**               | **Lebih sedikit (30–50%)** - tidak ada history yang membesar                                                          | **Lebih banyak** - history ReAct dikirim ulang tiap iterasi                                      |
 | **Fleksibilitas Alur**        | **Statis / linear:** 1 tool call maksimal, tidak bisa "cari lagi"                                                     | **Dinamis / loop:** bisa N tool call, bisa cross-check list_documents                            |
 | **Kemampuan Multi-Topik**     | **Lemah:** Planner JSON hanya punya 1 field `query` → gabung topik atau pilih salah satu. ReAct jelas menang di sini. | **Kuat:** punya multi-topik rules eksplisit, 1 search per topik                                  |
 | **Stabilitas Format**         | **Lebih stabil:** output JSON 3 field + regex extraction + retry. Kalau gagal, fallback default.                      | **Kurang stabil:** 3 label bebas + action whitelist → lebih sering perlu self-healing di loop    |
@@ -129,8 +130,8 @@ Perbandingan menyeluruh untuk dua pola prompting pada **model Qwen yang sama** (
 | **Avg Token (FAQ)**                     | 920                                     | 2180                              | Planner 🟢                                                          |
 | **Akurasi Jawaban FAQ**                 | 92% (46/50)                             | 88% (44/50)                       | Planner 🟢 (tipis)                                                  |
 | **Format Valid (pertama)**              | 83% JSON valid tanpa retry              | 71% label lengkap tanpa whitelist | Planner 🟢                                                          |
-| **Akurasi Multi-Topik (20 pertanyaan)** | 45% (9/20) — sering jawab hanya 1 topik | 80% (16/20) — lengkap semua topik | ReAct 🟢 (dominan)                                                  |
-| **Avg Step Multi-Topik**                | — (tidak ada step)                      | 5.1 step                          | Planner (lebih cepat tapi salah) / ReAct (lebih lambat tapi benar) |
+| **Akurasi Multi-Topik (20 pertanyaan)** | 45% (9/20) - sering jawab hanya 1 topik | 80% (16/20) - lengkap semua topik | ReAct 🟢 (dominan)                                                  |
+| **Avg Step Multi-Topik**                | - (tidak ada step)                      | 5.1 step                          | Planner (lebih cepat tapi salah) / ReAct (lebih lambat tapi benar) |
 
 > **Kesimpulan rule-of-thumb:** 80% kasus FAQ rutin → Planner (lebih cepat & lebih murah). 20% kasus kompleks / multi-topik / investigasi → ReAct. Ini alasan kurikulum mengajarkan **kedua pola**, bukan salah satu.
 
@@ -145,7 +146,7 @@ plan_and_execute(question, temperature=0.2)
         │
         ▼
 ┌─────────────────────────────────────────────┐
-│ PHASE 1 — PLANNER with RETRY LOOP          │
+│ PHASE 1 - PLANNER with RETRY LOOP          │
 │ for attempt in 1..(planner_max_retry + 1):  │
 │                                             │
 │   ┌──────────────────────────────────┐      │
@@ -170,7 +171,7 @@ plan_and_execute(question, temperature=0.2)
 └────────────────────┬────────────────────────┘
                      ▼
 ┌──────────────────────────────────────────────┐
-│ PHASE 2 — TOOL EXECUTION (PYTHON ONLY)       │
+│ PHASE 2 - TOOL EXECUTION (PYTHON ONLY)       │
 │ if decision.need_tool AND                    │
 │    decision.tool == "search_knowledge" AND   │
 │    decision.query is not None:               │
@@ -182,7 +183,7 @@ plan_and_execute(question, temperature=0.2)
 └────────────────────┬────────────────────────┘
                      ▼
 ┌──────────────────────────────────────────────┐
-│ PHASE 3 — FINAL ANSWER (LLM CALL #2)        │
+│ PHASE 3 - FINAL ANSWER (LLM CALL #2)        │
 │                                              │
 │ llm_complete(ANSWER_PROMPT.format(           │
 │   context = context_str OR                   │
@@ -205,18 +206,18 @@ plan_and_execute(question, temperature=0.2)
 
 ---
 
-## Mengapa JSON? — Structured Prompting untuk Function Calling Emulation
+## Mengapa JSON? - Structured Prompting untuk Function Calling Emulation
 
 ### Native Function Calling Tidak Ada di Qwen Kecil
 Model cloud besar seperti GPT-4, Claude, Gemini punya **native function calling / tool use**: LLM dilatih khusus untuk menerima daftar fungsi dalam JSON schema, lalu memanggilnya melalui format khusus (tanpa kita parse regex). Kita hanya kirim `tools=[{"name": "search", …}]` dan library mengurus sisanya.
 
 Model kecil lokal seperti Qwen 0.5B–7B **tidak dilatih untuk format itu**. Jadi kita harus *mengemulasi* function calling secara manual:
 
-1. **Planner prompt** memaksa Qwen mengeluarkan JSON `{need_tool, tool, query}` — ini setara dengan "LLM memutuskan tool call".
-2. **Python mengeksekusi tool call itu secara deterministik** — setara dengan runtime yang mengirim tool call ke server.
-3. **Answer prompt** menerima hasil tool (context) dan pertanyaan — setara dengan LLM yang memproses tool response.
+1. **Planner prompt** memaksa Qwen mengeluarkan JSON `{need_tool, tool, query}` - ini setara dengan "LLM memutuskan tool call".
+2. **Python mengeksekusi tool call itu secara deterministik** - setara dengan runtime yang mengirim tool call ke server.
+3. **Answer prompt** menerima hasil tool (context) dan pertanyaan - setara dengan LLM yang memproses tool response.
 
-Ini adalah **structured JSON prompting** — memaksa LLM mengeluarkan output dalam skema tertentu agar mudah diproses kode. Pola ini sangat umum pada model open-source kecil.
+Ini adalah **structured JSON prompting** - memaksa LLM mengeluarkan output dalam skema tertentu agar mudah diproses kode. Pola ini sangat umum pada model open-source kecil.
 
 ### Mengapa Tidak Tetap Pakai Label ReAct untuk Planner?
 Bisa saja. Tapi JSON punya 2 keuntungan untuk planner single-shot:
@@ -229,7 +230,7 @@ Bisa saja. Tapi JSON punya 2 keuntungan untuk planner single-shot:
 
 Lihat konstanta di [planner.py#L31-L54](file:///d:/Agentic-AI-Knowledge-ERP/Sesi_4_Knowledge_Agent_Planner/app/planner.py#L31-L54).
 
-### `PLANNER_PROMPT` — Instruksi untuk Keputusan Awal
+### `PLANNER_PROMPT` - Instruksi untuk Keputusan Awal
 
 ```python
 PLANNER_PROMPT = """Kamu adalah PLANNER agent. Tugasmu SATU-SATUNYA: memutuskan apakah pertanyaan user BUTUH tool (pencarian knowledge base) ATAU TIDAK.
@@ -250,14 +251,14 @@ JSON:"""
 #### Kenapa Setiap Baris Ditulis Seperti Itu?
 | Bagian                                                 | Alasan                                                                                                                                                                 |
 | ------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `"Kamu adalah PLANNER agent. Tugasmu SATU-SATUNYA: …"` | Persona sempit. Jangan kasih Qwen opsi "menjawab langsung tanpa JSON" — perannya hanya memutuskan tool, bukan menjawab.                                                |
-| `"Keluarkan HANYA JSON, TIDAK ADA teks lain"`          | Penekanan agar tidak ada pembuka "Tentu, berikut JSONnya: `{…}`" — kalimat pembuka seperti ini membuat regex `\{.*\}` menangkap area luas → sering `json.loads` gagal. |
+| `"Kamu adalah PLANNER agent. Tugasmu SATU-SATUNYA: …"` | Persona sempit. Jangan kasih Qwen opsi "menjawab langsung tanpa JSON" - perannya hanya memutuskan tool, bukan menjawab.                                                |
+| `"Keluarkan HANYA JSON, TIDAK ADA teks lain"`          | Penekanan agar tidak ada pembuka "Tentu, berikut JSONnya: `{…}`" - kalimat pembuka seperti ini membuat regex `\{.*\}` menangkap area luas → sering `json.loads` gagal. |
 | `{{ … }}` ganda di f-string Python                     | Di f-string Python, kurung kurawal literal ditulis ganda. Saat diformat, menjadi `{ … }` normal untuk dikirim ke LLM.                                                  |
 | `null` (bukan `""`)                                    | JSON standar untuk nilai kosong. `json.loads` memproses `null` jadi `None` Python. Lebih mudah dikondisikan.                                                           |
 | 2 RULES dengan kontras true/false                      | Memberi batas tegas kapan tool dipakai. Tanpa ini, Qwen sering "ragu" dan selalu `need_tool: true` meskipun user cuma "Halo"                                           |
 | Prompt diakhiri `"JSON:"`                              | Suffix tag yang jelas sebelum output. Mirip "A:" dalam dialog Q&A. Membantu LLM switch mode dari "membaca instruksi" ke "menghasilkan output".                         |
 
-### `ANSWER_PROMPT` — Instruksi untuk Narasi Jawaban
+### `ANSWER_PROMPT` - Instruksi untuk Narasi Jawaban
 
 ```python
 ANSWER_PROMPT = """Jawablah pertanyaan user dalam Bahasa Indonesia yang natural, ringkas, dan tepat.
@@ -272,9 +273,9 @@ Jawaban:"""
 ```
 
 #### Aturan Kunci dalam Answer Prompt
-1. **"Gunakan HANYA informasi dari KONTEKS… Jangan mengarang"** — *anti-hallucination guardrail*. Kalau konteks kosong, Qwen akan menjawab "Maaf, informasi tidak tersedia di dokumen" — tidak menebak-nebak.
-2. **Pemisah `=== KONTEKS ===` dan `=== AKHIR KONTEKS ===`** — membuat batas area konteks jelas secara visual. Qwen kecil jarang salah membedakan "bagian mana konteks, bagian mana pertanyaan".
-3. **Akhiri dengan `"Jawaban:"`** — lagi-lagi suffix tag agar LLM langsung mulai jawaban, tidak menulis preamble.
+1. **"Gunakan HANYA informasi dari KONTEKS… Jangan mengarang"** - *anti-hallucination guardrail*. Kalau konteks kosong, Qwen akan menjawab "Maaf, informasi tidak tersedia di dokumen" - tidak menebak-nebak.
+2. **Pemisah `=== KONTEKS ===` dan `=== AKHIR KONTEKS ===`** - membuat batas area konteks jelas secara visual. Qwen kecil jarang salah membedakan "bagian mana konteks, bagian mana pertanyaan".
+3. **Akhiri dengan `"Jawaban:"`** - lagi-lagi suffix tag agar LLM langsung mulai jawaban, tidak menulis preamble.
 
 ---
 
@@ -302,10 +303,10 @@ Pattern:  \{.*\}
            └─ "BUKA: karakter { literal"
 ```
 
-- **Greedy (bukan non-greedy)**. Kenapa? JSON bisa memiliki `{… { nested } …}`. Regex greedy akan menangkap dari `{` PERTAMA sampai `}` TERAKHIR — itu sebenarnya yang kita inginkan untuk JSON top-level.
+- **Greedy (bukan non-greedy)**. Kenapa? JSON bisa memiliki `{… { nested } …}`. Regex greedy akan menangkap dari `{` PERTAMA sampai `}` TERAKHIR - itu sebenarnya yang kita inginkan untuk JSON top-level.
 - **`re.DOTALL` wajib.** JSON planner cukup panjang dan sering menempati 2–3 baris. Tanpa `re.DOTALL`, `.*` berhenti di `\n` pertama.
 
-### Langkah 2: `json.loads()` — Validasi Sintaks Ketat
+### Langkah 2: `json.loads()` - Validasi Sintaks Ketat
 Regex hanya memastikan "ada sesuatu yang terlihat seperti JSON". Hanya `json.loads()` yang 100% memastikan sintaks benar (tanda koma, quote seimbang, dll). Kegagalan apa pun → `None`.
 
 ### Retry Loop Planner
@@ -318,7 +319,7 @@ for attempt in range(1, settings.planner_max_retry + 2):
     planner_retries += 1            # ❌ hitung percobaan gagal
 ```
 - `planner_max_retry` default = **2**. Jadi total maksimal 3 panggilan (1 asli + 2 retry).
-- Tidak ada pesan "ulangi" secara eksplisit — cukup panggil ulang prompt **persis sama**. Pada Qwen, seed yang berbeda per call membuat output berbeda meskipun prompt sama. 3x panggilan cukup untuk setidaknya 1 JSON valid (pengujian: 99% valid dalam ≤3x retry).
+- Tidak ada pesan "ulangi" secara eksplisit - cukup panggil ulang prompt **persis sama**. Pada Qwen, seed yang berbeda per call membuat output berbeda meskipun prompt sama. 3x panggilan cukup untuk setidaknya 1 JSON valid (pengujian: 99% valid dalam ≤3x retry).
 
 ### Fallback Akhir: Default `need_tool=False`
 Kalau SEMUA retry gagal, kita anggap `need_tool=false` (tidak butuh pencarian). **Kenapa tidak dibalik?** Karena:
@@ -380,7 +381,7 @@ Pertanyaan / Use Case masuk
 
 ### Pertanyaan yang sama: *"Apa kebijakan refund produk NocBook?"*
 
-**Output Planner (Sesi 4)** — 2 LLM call, ~3,2 detik:
+**Output Planner (Sesi 4)** - 2 LLM call, ~3,2 detik:
 ```json
 {
   "question": "Apa kebijakan refund produk NocBook?",
@@ -396,11 +397,11 @@ Pertanyaan / Use Case masuk
 }
 ```
 
-**Output ReAct (Sesi 3)** — 2 step, ~8,9 detik:
+**Output ReAct (Sesi 3)** - 2 step, ~8,9 detik:
 ```json
 {
   "query": "Apa kebijakan refund produk NocBook?",
-  "final_answer": "(jawaban final — sama isinya)",
+  "final_answer": "(jawaban final - sama isinya)",
   "steps": [
     { "step": 1, "thought": "User ingin tahu refund…", "action": "search_knowledge",
       "action_input": "refund NocBook", "observation": "[1] (Sumber: Kebijakan Refund)…" },
@@ -419,10 +420,19 @@ Pertanyaan / Use Case masuk
 - Sesi 2 Knowledge CRUD API (Port 8001) berjalan.
 - Model GGUF Qwen + binary llama-server ada di folder `../End-to-End LLM Serving/`.
 
-## Download Model Qwen
-📥 **[Download model GGUF dari Google Drive](https://drive.google.com/drive/folders/16eYzbAx7KOnawHqmnMD6tjshSSCmp6sX?usp=sharing)**
+## Persiapan llama.cpp & Model Lokal
 
-Setelah download, letakkan file `.gguf` di folder `../End-to-End LLM Serving/models/`.
+Proyek ini menggunakan LLM secara lokal (Local AI). Ikuti langkah ini agar LLM bisa berjalan:
+
+**1. Siapkan Binary llama-server**
+- Download *release* terbaru dari **[GitHub llama.cpp releases](https://github.com/ggerganov/llama.cpp/releases)**.
+- Ambil file `llama-server.exe` (di Windows) atau `llama-server` (di Mac/Linux).
+- Letakkan binary tersebut di folder `Sesi_4_Knowledge_Agent_Planner/bin/`. (Buat foldernya jika belum ada).
+
+**2. Siapkan File Model GGUF**
+📥 **[Download model GGUF dari Google Drive](https://drive.google.com/drive/folders/16eYzbAx7KOnawHqmnMD6tjshSSCmp6sX?usp=sharing)**
+- Letakkan file `.gguf` di dalam root direktori: `Agentic-AI-Knowledge-ERP/models/`.
+- Periksa kembali isian `LLM_MODEL_GGUF` di `.env` Anda agar persis dengan file model yang terinstal.
 
 ## Cara Run
 ```cmd
@@ -464,13 +474,13 @@ Sesi_4_Knowledge_Agent_Planner/
 
 ### Prasyarat Wajib Sebelum Mulai
 
-1. **Sesi 2 Knowledge CRUD API (port 8001) harus berjalan** — Planner memanggil `http://localhost:8001/documents/search` sebagai knowledge tool
+1. **Sesi 2 Knowledge CRUD API (port 8001) harus berjalan** - Planner memanggil `http://localhost:8001/documents/search` sebagai knowledge tool
 2. **Model GGUF Qwen** tersedia di folder `../models/`
 3. **Binary `llama-server`** tersedia di `../bin/llama-server.exe`
 
-> Jalankan `run.bat` — script otomatis spawn Sesi 2 di jendela baru lalu start Sesi 4.
+> Jalankan `run.bat` - script otomatis spawn Sesi 2 di jendela baru lalu start Sesi 4.
 
-### Langkah 1 — Setup Folder & Environment
+### Langkah 1 - Setup Folder & Environment
 
 ```cmd
 mkdir Sesi_4_Knowledge_Agent_Planner
@@ -481,7 +491,7 @@ python -m venv .venv
 pip install -r requirements.txt
 ```
 
-### Langkah 2 — Buat `.env`
+### Langkah 2 - Buat `.env`
 
 ```env
 VECTOR_BACKEND=duckdb
@@ -502,7 +512,7 @@ PLANNER_MAX_RETRY=2
 APP_PORT=8003
 ```
 
-### Langkah 3 — Buat `app/config.py`
+### Langkah 3 - Buat `app/config.py`
 
 ```python
 from pydantic_settings import BaseSettings
@@ -535,7 +545,7 @@ class Settings(BaseSettings):
 settings = Settings()
 ```
 
-### Langkah 4 — Buat `app/schemas.py`
+### Langkah 4 - Buat `app/schemas.py`
 
 ```python
 from pydantic import BaseModel
@@ -559,11 +569,11 @@ class ChatResponse(BaseModel):
     planner_retries: int
 ```
 
-### Langkah 5 — Buat `app/llm.py`
+### Langkah 5 - Buat `app/llm.py`
 
-Sama seperti Sesi 3 — salin `llm.py` dari Sesi 3 dan ubah port ke `8081`.
+Sama seperti Sesi 3 - salin `llm.py` dari Sesi 3 dan ubah port ke `8081`.
 
-### Langkah 6 — Buat `app/planner.py` (Inti Planner-Executor)
+### Langkah 6 - Buat `app/planner.py` (Inti Planner-Executor)
 
 ```python
 import re, json
@@ -676,7 +686,7 @@ async def plan_and_execute(question: str, temperature: float = 0.2) -> dict:
     }
 ```
 
-### Langkah 7 — Buat `app/main.py`
+### Langkah 7 - Buat `app/main.py`
 
 ```python
 from contextlib import asynccontextmanager
@@ -691,7 +701,7 @@ async def lifespan(app: FastAPI):
     yield
     stop_llama()
 
-app = FastAPI(title="Sesi 4 — Knowledge Agent Planner", lifespan=lifespan)
+app = FastAPI(title="Sesi 4 - Knowledge Agent Planner", lifespan=lifespan)
 
 @app.get("/health")
 def health():
@@ -717,7 +727,7 @@ def compare():
     }
 ```
 
-### Langkah 8 — Jalankan & Uji
+### Langkah 8 - Jalankan & Uji
 
 ```cmd
 run.bat
@@ -725,19 +735,19 @@ run.bat
 
 Buka **http://localhost:8003/docs**
 
-**Uji 1 — FAQ sederhana:**
+**Uji 1 - FAQ sederhana:**
 ```json
 { "question": "Apa syarat pengajuan refund produk?" }
 ```
 Harapan: `decision.need_tool: true`, context berisi dokumen refund, `llm_calls: 2`.
 
-**Uji 2 — Sapaan (tanpa tool):**
+**Uji 2 - Sapaan (tanpa tool):**
 ```json
 { "question": "Halo, terima kasih!" }
 ```
 Harapan: `decision.need_tool: false`, `context: "(tidak ada konteks tambahan)"`, `llm_calls: 2`.
 
-**Uji 3 — Amati `planner_retries`:**
+**Uji 3 - Amati `planner_retries`:**
 Jika model kadang menghasilkan JSON tidak valid, counter `planner_retries` akan > 0.
 
 **Bandingkan dengan Sesi 3:**
@@ -745,7 +755,7 @@ Jika model kadang menghasilkan JSON tidak valid, counter `planner_retries` akan 
 - Bandingkan `total_steps` Sesi 3 vs `llm_calls` Sesi 4
 - Bandingkan response time
 
-### Langkah 9 — Unit Test
+### Langkah 9 - Unit Test
 
 ```python
 # tests/test_planner.py

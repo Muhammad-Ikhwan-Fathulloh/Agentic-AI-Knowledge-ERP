@@ -1,6 +1,6 @@
 @echo off
 REM =============================================================
-REM  Sesi 1 — Prepare Data Knowledge & Vector DB (Port 8000)
+REM  Sesi 1 - Prepare Data Knowledge & Vector DB (Port 8000)
 REM  Pipeline: Load → Clean → Chunk → Embed → Store (DuckDB VSS)
 REM  Seed otomatis 8 contoh FAQ + SOP bila DB kosong.
 REM =============================================================

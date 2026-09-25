@@ -1,4 +1,4 @@
-# Sesi 2 — Knowledge Agent: CRUD REST API (Port 8001)
+# Sesi 2 - Knowledge Agent: CRUD REST API (Port 8001)
 
 **Notebook referensi:** `Sesi_2_Knowledge_Agent_CRUD_API.ipynb`
 **Penjelasan mendalam:** `../README_Sesi_2.md`
@@ -8,7 +8,7 @@
 Membungkus tabel `documents` (DuckDB + VSS dari Sesi 1) menjadi **REST API penuh** dengan FastAPI, lengkap dengan:
 - CRUD individual dokumen (`POST/GET/PUT/DELETE /documents/{id}`)
 - Pagination list (`GET /documents`)
-- **Semantic search** (`GET /documents/search?q=...`) — memakai embedding + `array_distance` DuckDB VSS
+- **Semantic search** (`GET /documents/search?q=...`) - memakai embedding + `array_distance` DuckDB VSS
 - Bulk insert (`POST /documents/bulk`)
 - **Upload PDF otomatis** di-chunk & di-embed (`POST /documents/upload-pdf`)
 - Ingest teks panjang dengan chunking kustom (`POST /documents/ingest-text`)
@@ -19,7 +19,7 @@ Membungkus tabel `documents` (DuckDB + VSS dari Sesi 1) menjadi **REST API penuh
 ## Prasyarat
 
 - Python 3.10+ (tested 3.11)
-- Tidak perlu GPU / server DB — DuckDB embedded.
+- Tidak perlu GPU / server DB - DuckDB embedded.
 
 ## Struktur Folder
 
@@ -92,14 +92,14 @@ Test **tidak membutuhkan LLM nyala** (hanya menguji parser, CRUD, fallback, vali
 
 ## Hubungan dengan Sesi Lain
 
-- Sesi **2 ini adalah "tool provider" untuk agent di Sesi 3 (ReAct) dan Sesi 4 (Planner)** — kedua sesi itu akan memanggil `http://localhost:8001/documents/search` & `/documents` sebagai *Knowledge Base*.
+- Sesi **2 ini adalah "tool provider" untuk agent di Sesi 3 (ReAct) dan Sesi 4 (Planner)** - kedua sesi itu akan memanggil `http://localhost:8001/documents/search` & `/documents` sebagai *Knowledge Base*.
 - Port 8001 juga digunakan oleh Sesi 8 (Orchestrator) ketika melakukan dispatch ke domain `knowledge`.
 
 ---
 
 ## 🛠️ Hands-On: Cara Membuat Proyek Ini dari Nol
 
-### Langkah 1 — Setup Folder & Environment
+### Langkah 1 - Setup Folder & Environment
 
 ```cmd
 mkdir Sesi_2_Knowledge_Agent_CRUD
@@ -112,7 +112,7 @@ pip install -r requirements.txt
 
 Isi `requirements.txt` sama dengan Sesi 1 (tambahkan `python-multipart`).
 
-### Langkah 2 — Buat `.env`
+### Langkah 2 - Buat `.env`
 
 ```env
 VECTOR_BACKEND=duckdb
@@ -122,7 +122,7 @@ DUCKDB_PATH=./knowledge.duckdb
 APP_PORT=8001
 ```
 
-### Langkah 3 — Buat `app/config.py`
+### Langkah 3 - Buat `app/config.py`
 
 ```python
 from pydantic_settings import BaseSettings
@@ -140,7 +140,7 @@ class Settings(BaseSettings):
 settings = Settings()
 ```
 
-### Langkah 4 — Buat `app/embeddings.py`
+### Langkah 4 - Buat `app/embeddings.py`
 
 Wrapper tipis di atas SentenceTransformer agar mudah diganti model lain:
 
@@ -154,7 +154,7 @@ def encode(text: str) -> list[float]:
     return _model.encode(text).tolist()
 ```
 
-### Langkah 5 — Buat `app/database.py`
+### Langkah 5 - Buat `app/database.py`
 
 `DocStore` adalah class utama yang membungkus semua operasi DuckDB:
 
@@ -268,7 +268,7 @@ class DocStore:
         return len(chunks)
 ```
 
-### Langkah 6 — Buat `app/pdf_ingest.py`
+### Langkah 6 - Buat `app/pdf_ingest.py`
 
 ```python
 import io
@@ -279,7 +279,7 @@ def extract_pdf(content: bytes) -> str:
     return "\n".join(page.extract_text() or "" for page in reader.pages)
 ```
 
-### Langkah 7 — Buat `app/schemas.py`
+### Langkah 7 - Buat `app/schemas.py`
 
 ```python
 from pydantic import BaseModel
@@ -307,7 +307,7 @@ class IngestTextIn(BaseModel):
     chunk_overlap: Optional[int] = 80
 ```
 
-### Langkah 8 — Buat `app/main.py`
+### Langkah 8 - Buat `app/main.py`
 
 ```python
 from contextlib import asynccontextmanager
@@ -324,7 +324,7 @@ async def lifespan(app: FastAPI):
     store.seed()   # seed 8 contoh bila kosong
     yield
 
-app = FastAPI(title="Sesi 2 — Knowledge CRUD API", lifespan=lifespan)
+app = FastAPI(title="Sesi 2 - Knowledge CRUD API", lifespan=lifespan)
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"],
                    allow_headers=["*"])
 
@@ -390,7 +390,7 @@ def ingest_text(req: IngestTextIn):
     return {"chunks_created": n}
 ```
 
-### Langkah 9 — Jalankan & Uji
+### Langkah 9 - Jalankan & Uji
 
 ```cmd
 uvicorn app.main:app --port 8001 --reload
@@ -421,7 +421,7 @@ uvicorn app.main:app --port 8001 --reload
 8. **`GET /stats`** → lihat total dokumen bertambah
 9. **`DELETE /documents/{id}`** → hapus dokumen tadi
 
-### Langkah 10 — Unit Test
+### Langkah 10 - Unit Test
 
 Buat `tests/test_documents.py`:
 

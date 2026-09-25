@@ -1,6 +1,6 @@
 @echo off
 REM =============================================================
-REM  Sesi 6 — ERP ReAct Agent (Port 8006)
+REM  Sesi 6 - ERP ReAct Agent (Port 8006)
 REM  Butuh Sesi 5 ERP API (port 8005)
 REM =============================================================
 cd /d "%~dp0"

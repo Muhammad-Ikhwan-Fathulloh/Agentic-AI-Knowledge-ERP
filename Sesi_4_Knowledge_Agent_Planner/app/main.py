@@ -1,5 +1,5 @@
 """
-Sesi 4 — Knowledge Agent Planner-Executor (Structured JSON Prompting)
+Sesi 4 - Knowledge Agent Planner-Executor (Structured JSON Prompting)
 Port 8003
 """
 from fastapi import FastAPI
@@ -11,7 +11,7 @@ from app.schemas import PlannerRequest, PlannerResponse
 from app.planner import plan_and_execute
 
 app = FastAPI(
-    title="Sesi 4 — Knowledge Agent Planner (JSON Structured)",
+    title="Sesi 4 - Knowledge Agent Planner (JSON Structured)",
     version="4.0.0",
     lifespan=lifespan,
 )

@@ -1,5 +1,5 @@
 """
-Sesi 5 — Knowledge ERP: CRUD REST API (Port 8005)
+Sesi 5 - Knowledge ERP: CRUD REST API (Port 8005)
 ====================================================
 CRUD Produk, Customer, Order, Laporan Penjualan, Low-Stock.
 """
@@ -13,7 +13,7 @@ from app.schemas import (
     ProductIn, ProductOut, CustomerIn, CustomerOut, OrderIn,
 )
 
-app = FastAPI(title="Sesi 5 — Knowledge ERP CRUD API", version="5.0.0")
+app = FastAPI(title="Sesi 5 - Knowledge ERP CRUD API", version="5.0.0")
 
 app.add_middleware(
     CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"],

@@ -1,7 +1,7 @@
-# Sesi 5 — Knowledge ERP: CRUD REST API (Port 8005)
+# Sesi 5 - Knowledge ERP: CRUD REST API (Port 8005)
 
 ## Ringkasan
-Membangun **domain data transaksional ERP sederhana** (Produk, Pelanggan, Order) dengan DuckDB embedded. Tidak ada LLM di sini — service ini murni sebagai **data layer** yang nantinya jadi tool agent di Sesi 6, 7, dan 8.
+Membangun **domain data transaksional ERP sederhana** (Produk, Pelanggan, Order) dengan DuckDB embedded. Tidak ada LLM di sini - service ini murni sebagai **data layer** yang nantinya jadi tool agent di Sesi 6, 7, dan 8.
 
 ## Fitur
 | Entity    | Endpoint                                                                       | Keterangan                                      |
@@ -32,8 +32,8 @@ Sesi_5_Knowledge_ERP_CRUD/
 ```
 
 ## Uji Manual via `/docs`
-1. `GET /products` — pastikan 8 produk contoh muncul.
-2. `GET /customers` — pastikan 3 pelanggan muncul.
+1. `GET /products` - pastikan 8 produk contoh muncul.
+2. `GET /customers` - pastikan 3 pelanggan muncul.
 3. Ambil salah satu `customer_id` dan `product_id`.
 4. `POST /orders`:
    ```json
@@ -45,7 +45,7 @@ Sesi_5_Knowledge_ERP_CRUD/
 
 ## 🛠️ Hands-On: Cara Membuat Proyek Ini dari Nol
 
-### Langkah 1 — Setup Folder & Environment
+### Langkah 1 - Setup Folder & Environment
 
 ```cmd
 mkdir Sesi_5_Knowledge_ERP_CRUD
@@ -56,7 +56,7 @@ python -m venv .venv
 pip install fastapi uvicorn[standard] pydantic pydantic-settings python-dotenv duckdb httpx pytest
 ```
 
-### Langkah 2 — Buat `.env`
+### Langkah 2 - Buat `.env`
 
 ```env
 EMBED_MODEL=all-MiniLM-L6-v2
@@ -65,7 +65,7 @@ DUCKDB_PATH=./erp.duckdb
 APP_PORT=8005
 ```
 
-### Langkah 3 — Buat `app/config.py`
+### Langkah 3 - Buat `app/config.py`
 
 ```python
 from pydantic_settings import BaseSettings
@@ -80,7 +80,7 @@ class Settings(BaseSettings):
 settings = Settings()
 ```
 
-### Langkah 4 — Buat `app/schemas.py`
+### Langkah 4 - Buat `app/schemas.py`
 
 ```python
 from pydantic import BaseModel
@@ -111,9 +111,9 @@ class OrderIn(BaseModel):
     items: list[OrderItem]
 ```
 
-### Langkah 5 — Buat `app/database.py`
+### Langkah 5 - Buat `app/database.py`
 
-Ini jantung Sesi 5 — berisi seluruh logika bisnis ERP:
+Ini jantung Sesi 5 - berisi seluruh logika bisnis ERP:
 
 ```python
 import duckdb, uuid
@@ -215,7 +215,7 @@ class ERPDatabase:
         c.close()
         return [{"id":r[0],"name":r[1],"email":r[2]} for r in rows]
 
-    # ORDERS — validasi stok
+    # ORDERS - validasi stok
     def create_order(self, customer_id: str, items: list) -> dict:
         c = self._conn()
         total = 0
@@ -272,7 +272,7 @@ class ERPDatabase:
         return [{"id":r[0],"name":r[1],"stock":r[2]} for r in rows]
 ```
 
-### Langkah 6 — Buat `app/main.py`
+### Langkah 6 - Buat `app/main.py`
 
 ```python
 from contextlib import asynccontextmanager
@@ -287,7 +287,7 @@ async def lifespan(app: FastAPI):
     db.seed()
     yield
 
-app = FastAPI(title="Sesi 5 — Knowledge ERP CRUD", lifespan=lifespan)
+app = FastAPI(title="Sesi 5 - Knowledge ERP CRUD", lifespan=lifespan)
 
 # --- PRODUCTS ---
 @app.get("/products")
@@ -323,7 +323,7 @@ def low_stock(threshold: int = 10):
     return db.low_stock_report(threshold)
 ```
 
-### Langkah 7 — Jalankan & Uji Step-by-Step
+### Langkah 7 - Jalankan & Uji Step-by-Step
 
 ```cmd
 uvicorn app.main:app --port 8005 --reload
@@ -347,13 +347,13 @@ uvicorn app.main:app --port 8005 --reload
 4. **`GET /report/sales?days=7`** → lihat laporan penjualan (order tadi masuk)
 5. **`GET /report/low-stock?threshold=50`** → lihat produk dengan stok di bawah 50
 
-6. **Uji validasi stok** — buat order dengan `qty` melebihi stok:
+6. **Uji validasi stok** - buat order dengan `qty` melebihi stok:
    ```json
    { "customer_id": "...", "items": [{ "product_id": "...", "qty": 9999 }] }
    ```
    → Harus dapat **HTTP 400** dengan pesan stok tidak cukup
 
-### Langkah 8 — Unit Test
+### Langkah 8 - Unit Test
 
 ```python
 # tests/test_erp.py

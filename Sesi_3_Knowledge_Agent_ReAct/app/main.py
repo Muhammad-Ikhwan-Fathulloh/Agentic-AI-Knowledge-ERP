@@ -1,9 +1,9 @@
 """
-Sesi 3 — Knowledge Agent dengan ReAct Prompting (Port 8002)
+Sesi 3 - Knowledge Agent dengan ReAct Prompting (Port 8002)
 ============================================================
 FastAPI yang membungkus ReAct loop + tools + llama-server.
 
-Knowledge base (DuckDB) dikelola lokal — tidak perlu Sesi 2 jalan
+Knowledge base (DuckDB) dikelola lokal - tidak perlu Sesi 2 jalan
 secara terpisah. Data seed FAQ & SOP diambil langsung dari database.py.
 
 Cara run:
@@ -45,7 +45,7 @@ async def lifespan(app: FastAPI):
 # App
 # ---------------------------------------------------------------------------
 app = FastAPI(
-    title="Sesi 3 — Knowledge Agent ReAct",
+    title="Sesi 3 - Knowledge Agent ReAct",
     version="3.0.0",
     lifespan=lifespan,
 )
@@ -95,7 +95,7 @@ async def chat(req: ReActRequest):
 
 
 # ---------------------------------------------------------------------------
-# Knowledge CRUD endpoints (kompatibel dengan Sesi 2 — port 8001)
+# Knowledge CRUD endpoints (kompatibel dengan Sesi 2 - port 8001)
 # Memungkinkan Sesi 4+ memanggil Sesi 3 sebagai pengganti Sesi 2.
 # ---------------------------------------------------------------------------
 @app.get("/documents/search", response_model=List[DocSearchResult])

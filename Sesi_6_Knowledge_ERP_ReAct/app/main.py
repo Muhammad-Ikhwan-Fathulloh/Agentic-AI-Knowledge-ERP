@@ -1,5 +1,5 @@
 """
-Sesi 6 — Knowledge ERP dengan ReAct Prompting (Port 8006)
+Sesi 6 - Knowledge ERP dengan ReAct Prompting (Port 8006)
 """
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -10,7 +10,7 @@ from app.schemas import ReActRequest, ReActResponse
 from app.react_erp import erp_react_loop
 
 app = FastAPI(
-    title="Sesi 6 — Knowledge ERP ReAct Agent",
+    title="Sesi 6 - Knowledge ERP ReAct Agent",
     version="6.0.0",
     lifespan=lifespan,
 )

@@ -1,4 +1,4 @@
-# Sesi 8 — Agentic AI Orchestrator (Port 8000)
+# Sesi 8 - Agentic AI Orchestrator (Port 8000)
 
 ## Ringkasan
 **Final integration**: Satu service yang menyatukan **Knowledge Agent (Sesi 2–4)** dan **ERP Agent (Sesi 5–7)** dalam satu pintu masuk dengan:
@@ -34,25 +34,34 @@ run.bat
 ```
 Otomatis menjalankan **4 service**:
 
-## Download Model Qwen
-📥 **[Download model GGUF dari Google Drive](https://drive.google.com/drive/folders/16eYzbAx7KOnawHqmnMD6tjshSSCmp6sX?usp=sharing)**
+## Persiapan llama.cpp & Model Lokal
 
-Setelah download, letakkan file `.gguf` di folder `../End-to-End LLM Serving/models/`.
-| Port | Service |
-|---|---|
-| 8001 | Sesi 2 Knowledge CRUD |
-| 8005 | Sesi 5 ERP CRUD |
-| 8007 | Sesi 7 ERP Report Generate |
+Proyek ini menggunakan LLM secara lokal (Local AI). Ikuti langkah ini agar LLM bisa berjalan:
+
+**1. Siapkan Binary llama-server**
+- Download *release* terbaru dari **[GitHub llama.cpp releases](https://github.com/ggerganov/llama.cpp/releases)**.
+- Ambil file `llama-server.exe` (di Windows) atau `llama-server` (di Mac/Linux).
+- Letakkan binary tersebut di folder `../End-to-End LLM Serving/backend/bin/`. (Buat foldernya jika belum ada).
+
+**2. Siapkan File Model GGUF**
+📥 **[Download model GGUF dari Google Drive](https://drive.google.com/drive/folders/16eYzbAx7KOnawHqmnMD6tjshSSCmp6sX?usp=sharing)**
+- Letakkan file `.gguf` di folder `../End-to-End LLM Serving/models/`.
+- Periksa isian `LLM_MODEL_GGUF` di `.env` Anda agar persis dengan file model yang terinstal.
+| Port | Service                                       |
+| ---- | --------------------------------------------- |
+| 8001 | Sesi 2 Knowledge CRUD                         |
+| 8005 | Sesi 5 ERP CRUD                               |
+| 8007 | Sesi 7 ERP Report Generate                    |
 | 8000 | **Sesi 8 Orchestrator** (endpoint utama user) |
 
 ## Endpoint
-| Endpoint | Method | Deskripsi |
-|---|---|---|
-| `GET /health` | GET | Cek semua dependency, cache count, total interactions |
-| `POST /agent/orchestrate` | POST | Masukkan query, dapat jawaban end-to-end |
-| `POST /agent/feedback` | POST | `{interaction_id, is_like}` → simpan feedback |
-| `GET /agent/stats` | GET | Total interactions, likes, dislikes, cache entries |
-| `GET /agent/eval-benchmark` | GET | 10 Skenario evaluasi + checklist rubrik |
+| Endpoint                    | Method | Deskripsi                                             |
+| --------------------------- | ------ | ----------------------------------------------------- |
+| `GET /health`               | GET    | Cek semua dependency, cache count, total interactions |
+| `POST /agent/orchestrate`   | POST   | Masukkan query, dapat jawaban end-to-end              |
+| `POST /agent/feedback`      | POST   | `{interaction_id, is_like}` → simpan feedback         |
+| `GET /agent/stats`          | GET    | Total interactions, likes, dislikes, cache entries    |
+| `GET /agent/eval-benchmark` | GET    | 10 Skenario evaluasi + checklist rubrik               |
 
 ## Struktur
 ```
@@ -69,9 +78,9 @@ Sesi_8_Orchestrator/
 ```
 
 ## Referensi ke End-to-End-LLM-Serving
-| Modul End-to-End | Ekuivalen di Sesi 8 |
-|---|---|
-| P3 Semantic Cache (pgvector) | `semantic_cache` + VSS (DuckDB embedded) |
-| P4 Feedback Loop (pgvector) | `interactions` + feedback boolean |
-| P1/P2 Basic LLM + Saka-NLP | Dibatalkan: Sesi ini full LLM lokal tanpa external API |
-| P5/P6 RAG FAISS/pgvector | RAG dipindah ke Knowledge Agent + Planner (dispatch_knowledge) |
+| Modul End-to-End             | Ekuivalen di Sesi 8                                            |
+| ---------------------------- | -------------------------------------------------------------- |
+| P3 Semantic Cache (pgvector) | `semantic_cache` + VSS (DuckDB embedded)                       |
+| P4 Feedback Loop (pgvector)  | `interactions` + feedback boolean                              |
+| P1/P2 Basic LLM + Saka-NLP   | Dibatalkan: Sesi ini full LLM lokal tanpa external API         |
+| P5/P6 RAG FAISS/pgvector     | RAG dipindah ke Knowledge Agent + Planner (dispatch_knowledge) |

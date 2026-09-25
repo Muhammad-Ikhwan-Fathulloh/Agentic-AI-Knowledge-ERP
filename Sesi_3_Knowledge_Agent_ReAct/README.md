@@ -1,4 +1,4 @@
-# Sesi 3 — Knowledge Agent ReAct (Port 8002)
+# Sesi 3 - Knowledge Agent ReAct (Port 8002)
 
 ## Ringkasan
 Mengimplementasikan **loop ReAct (Reason-Act)** manual dengan LLM lokal Qwen. Agent dapat:
@@ -10,7 +10,7 @@ Mengimplementasikan **loop ReAct (Reason-Act)** manual dengan LLM lokal Qwen. Ag
 ---
 
 ## Daftar Isi
-1. [Apa itu ReAct? — Konsep Dasar](#apa-itu-react--konsep-dasar)
+1. [Apa itu ReAct? - Konsep Dasar](#apa-itu-react--konsep-dasar)
 2. [Anatomi Prompt ReAct: Mengapa `REACT_SYSTEM` Ditulis Seperti Itu?](#anatomi-prompt-react-mengapa-react_system-ditulis-seperti-itu)
 3. [Alir Kerja ReAct Loop (Diagram + Step-by-Step)](#alir-kerja-react-loop-diagram--step-by-step)
 4. [Parsing Output LLM: Regex `_parse_step()` Dijelaskan](#parsing-output-llm-regex-_parse_step-dijelaskan)
@@ -25,9 +25,9 @@ Mengimplementasikan **loop ReAct (Reason-Act)** manual dengan LLM lokal Qwen. Ag
 
 ---
 
-## Apa itu ReAct? — Konsep Dasar
+## Apa itu ReAct? - Konsep Dasar
 
-**ReAct** = **Re**asoning + **Act**ing adalah *paradigma prompting* yang membuat LLM tidak sekadar "menebak" jawaban, melainkan **berpikir terlebih dahulu, lalu mengambil aksi nyata (memanggil tool), lalu mengamati hasilnya, lalu beralasan lagi** — berulang seperti manusia memecahkan masalah.
+**ReAct** = **Re**asoning + **Act**ing adalah *paradigma prompting* yang membuat LLM tidak sekadar "menebak" jawaban, melainkan **berpikir terlebih dahulu, lalu mengambil aksi nyata (memanggil tool), lalu mengamati hasilnya, lalu beralasan lagi** - berulang seperti manusia memecahkan masalah.
 
 ### Asal-usul Konsep
 ReAct dipopulerkan oleh paper Google tahun 2022: *"ReAct: Synergizing Reasoning and Acting in Language Models"*. Intinya: LLM yang *hanya* melakukan Chain-of-Thought (CoT) sering berhalusinasi karena tidak terhubung ke "dunia nyata". Sebaliknya, LLM yang *hanya* bisa memanggil tool tidak tahu *mengapa* dan *kapan* harus memanggil tool. ReAct menggabungkan keduanya.
@@ -46,7 +46,7 @@ Bayangkan user bertanya: *"Bagaimana klaim garansi barang yang saya beli 2 bulan
   7. *Berpikir:* "Semua informasi cukup. Saya susun jawaban rapi."
   8. *FINISH:* Mengeluarkan jawaban final yang terstruktur.
 
-Setiap tahap ini bisa di-inspect di field `steps` pada response API — ini yang disebut **traceable / interpretable agent**.
+Setiap tahap ini bisa di-inspect di field `steps` pada response API - ini yang disebut **traceable / interpretable agent**.
 
 ---
 
@@ -72,13 +72,13 @@ Tool yang TERSEDIA:
 
 ### 3. Output Format Contract (Baris 14–17)
 ```
-FORMAT WAJIB setiap langkah — satu Thought + satu Action + satu Action Input:
+FORMAT WAJIB setiap langkah - satu Thought + satu Action + satu Action Input:
 Thought: <jelaskan kenapa kamu butuh tool / apa yang kamu pikirkan>
 Action: <nama_tool, WAJIB salah satu dari: search_knowledge, list_documents, create_document, atau FINISH>
 Action Input: <parameter tool, atau JAWABAN FINAL jika Action=FINISH>
 ```
 Ini adalah **kontrak format** yang paling krusial. Perhatikan:
-- Kata `WAJIB` diulang sengaja — model kecil perlu penekanan.
+- Kata `WAJIB` diulang sengaja - model kecil perlu penekanan.
 - `FINISH` disamakan level dengan tool lain agar parsing konsisten (satu field `Action` untuk semua kasus).
 - Setiap baris diawali `Label:` agar regex `_parse_step()` bisa menangkap dengan andal.
 
@@ -100,7 +100,7 @@ Ada **3 contoh**:
 - ✅ Contoh benar multi-topik (baris 38–49)
 - ❌ Contoh SALAH placeholder (baris 51–54)
 
-**Mengapa ini efektif?** Model kecil belajar dari *contoh*, bukan sekadar instruksi abstrak. Keberadaan contoh SALAH secara eksplisit sangat penting — tanpanya, model sering mengeluarkan `Action: FINISH` + `Action Input: Selesai`.
+**Mengapa ini efektif?** Model kecil belajar dari *contoh*, bukan sekadar instruksi abstrak. Keberadaan contoh SALAH secara eksplisit sangat penting - tanpanya, model sering mengeluarkan `Action: FINISH` + `Action Input: Selesai`.
 
 ---
 
@@ -156,7 +156,7 @@ Berikut adalah *control flow* yang dieksekusi oleh fungsi `react_loop()` di [rea
 ```
 
 ### Penjelasan Siklus Setiap Iterasi
-1. **LLM Complete**: `history` (yang membesar setiap iterasi) dikirim ke llama-server. Parameter `stop=["Observation:"]` *sangat penting* — tanpa ini, Qwen akan melanjutkan menulis `Observation: (konten buatan sendiri)` sebelum tool benar-benar dijalankan. **Stop token adalah batas antara "giliran LLM berpikir" dan "giliran Python menjalankan tool".**
+1. **LLM Complete**: `history` (yang membesar setiap iterasi) dikirim ke llama-server. Parameter `stop=["Observation:"]` *sangat penting* - tanpa ini, Qwen akan melanjutkan menulis `Observation: (konten buatan sendiri)` sebelum tool benar-benar dijalankan. **Stop token adalah batas antara "giliran LLM berpikir" dan "giliran Python menjalankan tool".**
 
 2. **Parsing**: Output teks LLM dipecah menjadi 3 variabel terpisah (T/A/AI). Baca detail di bagian [Parsing](#parsing-output-llm-regex-_parse_step-dijelaskan).
 
@@ -293,13 +293,13 @@ Minimal langkah sebelum FINISH =
    (jumlah topik terdeteksi × minimal 1 search_knowledge per topik)
    + langkah tambahan (list_documents jika perlu)
 ```
-Contoh: 2 topik → minimal 3 langkah (2 search + 1 FINISH). Kalau LLM FINISH di langkah ke-2, *tentu saja* informasinya belum lengkap — ini bisa dideteksi secara heuristik.
+Contoh: 2 topik → minimal 3 langkah (2 search + 1 FINISH). Kalau LLM FINISH di langkah ke-2, *tentu saja* informasinya belum lengkap - ini bisa dideteksi secara heuristik.
 
 ---
 
 ## Aturan FINISH: Kapan Agent Boleh Menyatakan Selesai?
 
-FINISH adalah *aksi terpenting* — salah FINISH berarti jawaban tidak berguna. Ada **5 aturan ketat** ([react.py#L26-L31](file:///d:/Agentic-AI-Knowledge-ERP/Sesi_3_Knowledge_Agent_ReAct/app/react.py#L26-L31)):
+FINISH adalah *aksi terpenting* - salah FINISH berarti jawaban tidak berguna. Ada **5 aturan ketat** ([react.py#L26-L31](file:///d:/Agentic-AI-Knowledge-ERP/Sesi_3_Knowledge_Agent_ReAct/app/react.py#L26-L31)):
 
 | Aturan                                                | Alasan                                                                      |
 | ----------------------------------------------------- | --------------------------------------------------------------------------- |
@@ -375,7 +375,7 @@ Perhatikan kualitas di langkah 3:
 ## Prasyarat
 - Folder `../End-to-End LLM Serving/models/` berisi file GGUF Qwen (contoh: `qwen2.5-0.5b-instruct-q4_k_m.gguf`).
 - Binary `llama-server` ada di `../End-to-End LLM Serving/backend/bin/`.
-- **Sesi 2 tidak perlu jalan** — knowledge base dikelola lokal di folder ini (`knowledge.duckdb`).
+- **Sesi 2 tidak perlu jalan** - knowledge base dikelola lokal di folder ini (`knowledge.duckdb`).
 
 ## Download Model Qwen
 📥 **[Download model GGUF dari Google Drive](https://drive.google.com/drive/folders/16eYzbAx7KOnawHqmnMD6tjshSSCmp6sX?usp=sharing)**
@@ -384,15 +384,34 @@ Setelah download, letakkan file `.gguf` di folder `../End-to-End LLM Serving/mod
 
 ## Knowledge Base Lokal (dari Sesi 2)
 Data FAQ & SOP dari Sesi 2 sudah di-embed langsung ke Sesi 3:
-- `app/database.py` — DocStore + seed data (FAQ NocBook, NocMouse, Shipping, Pembayaran, Refund, SOP Garansi, SOP Return, RAM DDR4)
-- `app/embeddings.py` — wrapper SentenceTransformer
+- `app/database.py` - DocStore + seed data (FAQ NocBook, NocMouse, Shipping, Pembayaran, Refund, SOP Garansi, SOP Return, RAM DDR4)
+- `app/embeddings.py` - wrapper SentenceTransformer
 - Data di-seed otomatis ke `knowledge.duckdb` saat pertama kali startup
 
 Mode sumber data bisa dikontrol via `.env`:
 | `USE_LOCAL_DB`   | Sumber data                                       |
 | ---------------- | ------------------------------------------------- |
-| `true` (default) | DuckDB lokal Sesi 3 — mandiri, tidak butuh Sesi 2 |
-| `false`          | REST API Sesi 2 port 8001 — butuh Sesi 2 jalan    |
+| `true` (default) | DuckDB lokal Sesi 3 - mandiri, tidak butuh Sesi 2 |
+| `false`          | REST API Sesi 2 port 8001 - butuh Sesi 2 jalan    |
+
+## Persiapan llama.cpp & Model Lokal
+
+Proyek ini tidak memakai API pihak ketiga (seperti OpenAI/Gemini), seluruhnya diproses di dalam komputer Anda (local AI). Oleh karena itu, kita membutuhkan binary eksekutor dan file model `.gguf`.
+
+**1. Siapkan Binary llama-server**
+Llama.cpp adalah engine ringan berbasis C++ untuk mengeksekusi model LLM lokal. 
+- Download *pre-built release* terbaru dari **[GitHub llama.cpp releases](https://github.com/ggerganov/llama.cpp/releases)**, pilih OS Anda (Windows/Mac/Linux).
+- Ekstrak file yang didownload, ambil file bernama `llama-server.exe` (di Windows) atau `llama-server` (di Mac/Linux).
+- Pastikan binary tersebut disalin dan diletakkan di dalam folder `Sesi_3_Knowledge_Agent_ReAct/bin/`. (Buat foldernya jika belum ada).
+
+**2. Siapkan Model GGUF**
+- Download model `.gguf` (kami merekomendasikan Qwen 0.5B / 1.5B) **[dari Google Drive berikut ini](https://drive.google.com/drive/folders/16eYzbAx7KOnawHqmnMD6tjshSSCmp6sX?usp=sharing)** atau HuggingFace.
+- Letakkan file model `.gguf` di dalam folder `Agentic-AI-Knowledge-ERP/models/` di root proyek.
+- Pastikan nama file `llm_model_gguf` di **.env / config.py** sesuai dengan nama file yang telah diletakkan.
+
+Setelah dua prasyarat ini disiapkan, agent dapat langsung mengaktifkan LLM secara otomatis.
+
+---
 
 ## Cara Run
 ```cmd
@@ -421,7 +440,7 @@ Sesi_3_Knowledge_Agent_ReAct/
 │   ├── embeddings.py   # SentenceTransformer wrapper (dari Sesi 2)
 │   ├── database.py     # DocStore + SEED_DATA FAQ & SOP (dari Sesi 2)
 │   ├── llm.py          # Startup llama-server + wrapper llm_complete (async)
-│   ├── tools.py        # Tool registry — dual-mode: local DB / HTTP API Sesi 2
+│   ├── tools.py        # Tool registry - dual-mode: local DB / HTTP API Sesi 2
 │   ├── react.py        # ReAct loop + prompt template + parser Thought/Action/Action Input
 │   └── main.py         # FastAPI entrypoint + /documents CRUD + /agent/chat
 ├── knowledge.duckdb    # Knowledge base lokal (auto-created saat startup)
@@ -433,7 +452,7 @@ Sesi_3_Knowledge_Agent_ReAct/
 ## Uji Manual (via Swagger /docs)
 1. Buka `http://localhost:8002/docs`.
 2. Coba `POST /agent/chat` dengan query: `Apa kebijakan refund produk?`.
-3. Perhatikan field `steps` — setiap step menunjukkan trace Thought/Action/Observation.
+3. Perhatikan field `steps` - setiap step menunjukkan trace Thought/Action/Observation.
 
 ---
 
@@ -445,9 +464,9 @@ Sesi_3_Knowledge_Agent_ReAct/
 2. **Binary `llama-server`** tersedia di `../bin/llama-server.exe`
 3. Sesi_2 sudah pernah dijalankan sekali (agar `knowledge.duckdb` tersedia, atau biarkan auto-seed dari Sesi 3 sendiri)
 
-> Kalau model dan bin belum ada, server tetap naik tapi endpoint `/agent/chat` akan error — itu normal, selesaikan download lebih dulu.
+> Kalau model dan bin belum ada, server tetap naik tapi endpoint `/agent/chat` akan error - itu normal, selesaikan download lebih dulu.
 
-### Langkah 1 — Setup Folder & Environment
+### Langkah 1 - Setup Folder & Environment
 
 ```cmd
 mkdir Sesi_3_Knowledge_Agent_ReAct
@@ -458,7 +477,7 @@ python -m venv .venv
 pip install -r requirements.txt
 ```
 
-### Langkah 2 — Buat `.env`
+### Langkah 2 - Buat `.env`
 
 ```env
 VECTOR_BACKEND=duckdb
@@ -478,7 +497,7 @@ LLAMA_BASE_URL=http://127.0.0.1:8080
 APP_PORT=8002
 ```
 
-### Langkah 3 — Buat `app/config.py`
+### Langkah 3 - Buat `app/config.py`
 
 ```python
 from pydantic_settings import BaseSettings
@@ -507,7 +526,7 @@ class Settings(BaseSettings):
 settings = Settings()
 ```
 
-### Langkah 4 — Buat `app/schemas.py`
+### Langkah 4 - Buat `app/schemas.py`
 
 ```python
 from pydantic import BaseModel
@@ -532,7 +551,7 @@ class ReActResponse(BaseModel):
     steps: list[StepLog]
 ```
 
-### Langkah 5 — Buat `app/llm.py`
+### Langkah 5 - Buat `app/llm.py`
 
 Modul untuk mengelola siklus hidup llama-server dan wrapper `llm_complete`:
 
@@ -574,7 +593,7 @@ async def start_llama():
             return
         except Exception:
             await asyncio.sleep(2)
-    print("[WARN] llama-server timeout — coba lanjut tanpa LLM")
+    print("[WARN] llama-server timeout - coba lanjut tanpa LLM")
 
 def stop_llama():
     if _proc:
@@ -594,7 +613,7 @@ async def llm_complete(prompt: str, max_tokens=400,
         return r.json()["content"].strip()
 ```
 
-### Langkah 6 — Buat `app/react.py` (Inti ReAct Loop)
+### Langkah 6 - Buat `app/react.py` (Inti ReAct Loop)
 
 ```python
 import re
@@ -686,7 +705,7 @@ async def react_loop(query: str, max_steps=8, temperature=0.3):
     return f"[Melebihi batas langkah] Jawaban sementara: {final}", steps
 ```
 
-### Langkah 7 — Buat `app/tools.py`
+### Langkah 7 - Buat `app/tools.py`
 
 ```python
 import httpx, json
@@ -733,7 +752,7 @@ class ToolRegistry:
             return f"Gagal menyimpan dokumen: {e}"
 ```
 
-### Langkah 8 — Buat `app/main.py`
+### Langkah 8 - Buat `app/main.py`
 
 ```python
 from contextlib import asynccontextmanager
@@ -750,7 +769,7 @@ async def lifespan(app: FastAPI):
     yield
     stop_llama()
 
-app = FastAPI(title="Sesi 3 — Knowledge Agent ReAct", lifespan=lifespan)
+app = FastAPI(title="Sesi 3 - Knowledge Agent ReAct", lifespan=lifespan)
 
 @app.get("/health")
 def health():
@@ -767,7 +786,7 @@ async def chat(req: ReActRequest):
     )
 ```
 
-### Langkah 9 — Jalankan Server
+### Langkah 9 - Jalankan Server
 
 ```cmd
 run.bat
@@ -780,17 +799,17 @@ uvicorn app.main:app --port 8002 --reload
 
 Saat startup, llama-server otomatis distart. Tunggu log `[OK] llama-server siap` sebelum lanjut.
 
-### Langkah 10 — Uji ReAct Loop via Swagger
+### Langkah 10 - Uji ReAct Loop via Swagger
 
 Buka **http://localhost:8002/docs** → `POST /agent/chat`:
 
-**Uji 1 — Pertanyaan satu topik:**
+**Uji 1 - Pertanyaan satu topik:**
 ```json
 { "query": "Apa kebijakan refund produk?", "max_steps": 8 }
 ```
 Harapan: 2 langkah (search + FINISH), `total_steps: 2`.
 
-**Uji 2 — Pertanyaan multi-topik:**
+**Uji 2 - Pertanyaan multi-topik:**
 ```json
 { "query": "Bagaimana cara klaim garansi NocBook dan apa syarat refund?", "max_steps": 8 }
 ```
@@ -802,19 +821,19 @@ Harapan: ≥3 langkah (search garansi + search refund + FINISH).
 - `observation` = hasil tool (konten dokumen yang ditemukan)
 - FINISH hanya muncul di langkah terakhir
 
-**Uji 3 — Pertanyaan tanpa tool:**
+**Uji 3 - Pertanyaan tanpa tool:**
 ```json
 { "query": "Halo, selamat pagi!" }
 ```
 Harapan: agent langsung FINISH tanpa `search_knowledge`.
 
-### Langkah 11 — Jalankan Unit Test
+### Langkah 11 - Jalankan Unit Test
 
 ```cmd
 pytest tests/test_react.py -v
 ```
 
-Test `test_react.py` tidak memerlukan LLM nyala — hanya menguji fungsi `_parse_step()`:
+Test `test_react.py` tidak memerlukan LLM nyala - hanya menguji fungsi `_parse_step()`:
 
 ```python
 from app.react import _parse_step, _is_placeholder
