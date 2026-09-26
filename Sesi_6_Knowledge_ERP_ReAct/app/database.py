@@ -11,7 +11,7 @@ from app.embeddings import encode
 def init_db():
     con = duckdb.connect(settings.duckdb_path)
     con.execute("INSTALL vss; LOAD vss;")
-    con.execute("""
+    con.execute(f"""
     CREATE TABLE IF NOT EXISTS products (
         id VARCHAR PRIMARY KEY, name VARCHAR NOT NULL,
         price DOUBLE NOT NULL, stock INTEGER NOT NULL DEFAULT 0,

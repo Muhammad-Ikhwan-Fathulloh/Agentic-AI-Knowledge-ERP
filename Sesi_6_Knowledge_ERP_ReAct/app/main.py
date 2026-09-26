@@ -7,7 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
 from app.database import db
-from app.llm import lifespan, state
+from app.llm import lifespan, llama_client
 from app.schemas import (
     ReActRequest, ReActResponse,
     ProductIn, ProductOut, CustomerIn, CustomerOut, OrderIn
@@ -26,13 +26,17 @@ app.add_middleware(
 
 @app.get("/health")
 async def health():
-    p = state.get("process")
     return {
         "app": "ok",
-        "llama_alive": p is not None and p.poll() is None,
-        "llama_ready": state.get("ready", False),
-        "erp_api": settings.erp_api_base,
+        "duckdb": settings.duckdb_path,
+        "llama_alive": llama_client._process is not None and llama_client._process.poll() is None,
+        "llama_ready": llama_client._is_ready,
         "require_human_confirm": settings.require_human_confirm_for_create_order,
+        "counts": {
+            "products": len(db.product_list()),
+            "customers": len(db.customer_list()),
+            "orders": len(db.order_list()),
+        },
     }
 
 
