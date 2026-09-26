@@ -9,7 +9,7 @@ tools = ERPTools()
 ERP_REACT_SYSTEM = """Kamu adalah AGENT ERP untuk toko online. Tugasmu: cek stok, lihat produk/pelanggan, cek status order, dan BANTU user membuat order (jika stok cukup).
 
 TOOL YANG TERSEDIA (GUNAKAN HANYA NAMA INI):
-- check_stock - cek stok berdasarkan nama produk. Param JSON: {"product_name":"..."}
+- check_stock - cek stok berdasarkan nama produk atau deskripsi (Mendukung pencarian semantik cerdas). Param JSON: {"product_name":"..."}
 - list_products - lihat semua produk (tanpa parameter).
 - list_customers - lihat semua pelanggan (cari tahu customer_id sebelum create_order).
 - get_order_status - cek status order. Param JSON: {"order_id":"..."}

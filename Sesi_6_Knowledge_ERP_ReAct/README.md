@@ -1,13 +1,13 @@
-# Sesi 6 - Knowledge ERP ReAct Agent (Port 8006)
+# Sesi 6 - Knowledge ERP ReAct Agent (Merged Port 8006)
 
 ## Ringkasan
-Menyambungkan **loop ReAct** dengan **tool registry ERP** (Sesi 5 API). Agent sekarang bisa **melakukan aksi bisnis** bukan cuma mencari informasi.
+Proyek ini sekarang menggabungkan **Sesi 5 (ERP Data Layer)** dan **Sesi 6 (ReAct Agent)** dalam satu servis. Loop ReAct sekarang memanggil operasi database secara native (melalui modul `database.py`) alih-alih menggunakan HTTP eksternal.
 
 ## Tool yang Tersedia
 | Tool                   | Kapan dipakai                                            |
 | ---------------------- | -------------------------------------------------------- |
 | `list_products`        | User ingin lihat daftar produk / "tampilkan semua"       |
-| `check_stock`          | User nanya stok / ketersediaan produk                    |
+| `check_stock`          | User nanya stok / ketersediaan produk (Mendukung vektor) |
 | `list_customers`       | Sebelum create_order (agent harus dapat `customer_id`)   |
 | `get_order_status`     | User nanya status order berdasarkan ID                   |
 | `create_order`         | Agent "stage" order (BELUM final, perlu konfirmasi user) |
@@ -21,7 +21,7 @@ Menyambungkan **loop ReAct** dengan **tool registry ERP** (Sesi 5 API). Agent se
 ```cmd
 run.bat
 ```
-(Otomatis spawning Sesi 5 ERP CRUD + Sesi 6 Agent ReAct)
+(Menjalankan seluruh operasi ERP dan Agent ReAct di satu port)
 
 ## Persiapan llama.cpp & Model Lokal
 

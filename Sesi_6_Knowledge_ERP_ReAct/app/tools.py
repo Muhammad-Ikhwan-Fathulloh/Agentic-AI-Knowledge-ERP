@@ -1,88 +1,78 @@
 import json
-import httpx
 from app.config import settings
+from app.database import db
 
 
 class ERPTools:
     """
-    Tool registry yang memanggil ERP REST API (Sesi 5, port 8005).
+    Tool registry yang memanggil ERP Database Layer secara internal.
     Semua method return STRING agar bisa jadi Observation di ReAct.
     """
     def __init__(self, base_url: str | None = None):
-        self.base_url = base_url or settings.erp_api_base
-        self.client = httpx.Client(timeout=30.0)
         self._pending_order = None
-
-    def _get(self, path, params=None):
-        try:
-            return self.client.get(f"{self.base_url}{path}", params=params or {}).json()
-        except Exception as e:
-            return {"error": str(e)}
-
-    def _post(self, path, json_body=None):
-        try:
-            return self.client.post(f"{self.base_url}{path}", json=json_body or {}).json()
-        except Exception as e:
-            return {"error": str(e)}
 
     # ----- check_stock -----
     def check_stock(self, product_name: str) -> str:
-        rows = self._get("/products", {"name": product_name})
+        rows = db.product_list(name=product_name)
         if isinstance(rows, list) and rows:
             lines = [f"Hasil pencarian stok untuk '{product_name}':"]
             for r in rows:
                 lines.append(
-                    f"- ID: {r['id']} | {r['name']} | Harga: Rp{r['price']:,.0f} | Stok: {r['stock']} unit"
+                    f"- ID: {r[0]} | {r[1]} | Harga: Rp{r[2]:,.0f} | Stok: {r[3]} unit"
                 )
             return "\n".join(lines)
         return f"(tidak ada produk yang cocok dengan '{product_name}')"
 
     # ----- list_products -----
     def list_products(self) -> str:
-        rows = self._get("/products")
+        rows = db.product_list()
         if isinstance(rows, list):
             lines = [f"Daftar {len(rows)} produk:"]
             for r in rows:
                 lines.append(
-                    f"- [{r['id'][:8]}] {r['name']} - Rp{r['price']:,.0f} (stok {r['stock']})"
+                    f"- [{r[0][:8]}] {r[1]} - Rp{r[2]:,.0f} (stok {r[3]})"
                 )
             return "\n".join(lines)
         return f"ERROR: {rows}"
 
     # ----- get_order_status -----
     def get_order_status(self, order_id: str) -> str:
-        r = self._get(f"/orders/{order_id}")
-        if isinstance(r, dict) and "id" in r:
-            it = "\n".join(
-                f"  * {x['product_name']} x{x['qty']} @ Rp{x['price']:,.0f} = Rp{x['subtotal']:,.0f}"
-                for x in r.get("items", [])
-            )
-            return (
-                f"Order {r['id']}\n"
-                f"Pelanggan: {r['customer_name']}\n"
-                f"Status: {r['status']}\n"
-                f"Total: Rp{r['total_amount']:,.0f}\n"
-                f"Tanggal: {r['created_at']}\n"
-                f"Item:\n{it}"
-            )
-        return f"Order tidak ditemukan / error: {r}"
+        try:
+            r = db.order_get(order_id)
+            if r:
+                o = r["order"]
+                items = r["items"]
+                it = "\n".join(
+                    f"  * {x[2]} x{x[3]} @ Rp{x[4]:,.0f} = Rp{x[5]:,.0f}"
+                    for x in items
+                )
+                return (
+                    f"Order {o[0]}\n"
+                    f"Pelanggan: {o[2]}\n"
+                    f"Status: {o[3]}\n"
+                    f"Total: Rp{o[4]:,.0f}\n"
+                    f"Tanggal: {o[5]}\n"
+                    f"Item:\n{it}"
+                )
+            return "Order tidak ditemukan."
+        except Exception as e:
+            return f"Error: {e}"
 
     # ----- create_order (human-in-the-loop) -----
     def stage_create_order(self, customer_id, product_id, qty) -> str:
-        payload = {
-            "customer_id": customer_id,
-            "items": [{"product_id": product_id, "qty": int(qty)}],
-        }
-        r = self._post("/orders", payload)
-        if "error" in r or "detail" in r:
-            return f"GAGAL membuat order: {r.get('detail') or r.get('error') or r}"
-        self._pending_order = r
-        return (
-            f"[PERLU KONFIRMASI] Order sudah disimulasikan:\n"
-            f"  order_id: {r.get('order_id')}\n"
-            f"  total: Rp{r.get('total_amount', 0):,.0f}\n"
-            f"Kirim Action confirm_create_order jika user setuju."
-        )
+        try:
+            r = db.order_create(customer_id, [{"product_id": product_id, "qty": int(qty)}])
+            self._pending_order = r
+            return (
+                f"[PERLU KONFIRMASI] Order sudah disimulasikan:\n"
+                f"  order_id: {r.get('order_id')}\n"
+                f"  total: Rp{r.get('total_amount', 0):,.0f}\n"
+                f"Kirim Action confirm_create_order jika user setuju."
+            )
+        except ValueError as e:
+            return f"GAGAL membuat order: {str(e)}"
+        except Exception as e:
+            return f"Error API: {e}"
 
     def confirm_create_order(self, answer: str = "ya") -> str:
         if "ya" in answer.lower() or "ok" in answer.lower() or "setuju" in answer.lower():
@@ -91,12 +81,12 @@ class ERPTools:
 
     # ----- list_customers -----
     def list_customers(self) -> str:
-        rows = self._get("/customers")
+        rows = db.customer_list()
         if isinstance(rows, list):
             lines = [f"Daftar {len(rows)} pelanggan:"]
             for r in rows:
                 lines.append(
-                    f"- ID: {r['id']} | {r['name']} | {r.get('email') or '-'} | {r.get('phone') or '-'}"
+                    f"- ID: {r[0]} | {r[1]} | {r[2] or '-'} | {r[3] or '-'}"
                 )
             return "\n".join(lines)
         return f"ERROR: {rows}"

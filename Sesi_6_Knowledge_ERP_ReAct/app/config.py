@@ -3,7 +3,13 @@ import os
 
 
 class Settings(BaseSettings):
-    erp_api_base: str = "http://127.0.0.1:8005"
+    embed_model: str = "all-MiniLM-L6-v2"
+    embed_dim: int = 384
+    duckdb_path: str = os.path.join(
+        os.path.dirname(os.path.abspath(__file__)),
+        "..",
+        "erp.duckdb",
+    )
 
     llm_model_gguf: str = "qwen2.5-0.5b-instruct-q4_k_m.gguf"
     llama_port: int = 8082
