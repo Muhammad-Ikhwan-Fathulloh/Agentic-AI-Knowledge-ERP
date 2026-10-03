@@ -38,7 +38,7 @@ WORKDIR /app
 
 COPY . .
 
-# Expose port Sesi 8
-EXPOSE 8000
+# Expose port Sesi 3
+EXPOSE 8003
 
-CMD ["python3.11", "-m", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["python3.11", "-m", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8003"]
