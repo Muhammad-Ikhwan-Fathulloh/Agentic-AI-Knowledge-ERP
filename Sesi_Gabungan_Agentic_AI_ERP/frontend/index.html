@@ -1,0 +1,771 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Agentic AI ERP v2.0 — Dual Knowledge Base + Agentic SOP→ERP Router</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"
+      integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+<style>
+  :root {
+    --brand-1: #0ea5e9;
+    --brand-2: #6366f1;
+    --brand-3: #8b5cf6;
+  }
+  body {
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
+    color: #e2e8f0;
+    min-height: 100vh;
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  }
+  .navbar {
+    background: rgba(15, 23, 42, 0.85) !important;
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid rgba(99, 102, 241, 0.25);
+  }
+  .gradient-text {
+    background: linear-gradient(90deg, var(--brand-1), var(--brand-2), var(--brand-3));
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    font-weight: 700;
+  }
+  .card {
+    background: rgba(30, 41, 59, 0.75);
+    border: 1px solid rgba(148, 163, 184, 0.15);
+    border-radius: 14px;
+    backdrop-filter: blur(6px);
+    transition: transform .2s, box-shadow .2s;
+  }
+  .card:hover { transform: translateY(-2px); box-shadow: 0 10px 30px rgba(99, 102, 241, 0.15); }
+  .card-header {
+    background: linear-gradient(135deg, rgba(14, 165, 233, 0.1), rgba(99, 102, 241, 0.1));
+    border-bottom: 1px solid rgba(99, 102, 241, 0.25);
+    font-weight: 600;
+    border-radius: 14px 14px 0 0 !important;
+  }
+  .btn-primary {
+    background: linear-gradient(135deg, var(--brand-1), var(--brand-2));
+    border: none;
+    font-weight: 600;
+  }
+  .btn-primary:hover { background: linear-gradient(135deg, var(--brand-2), var(--brand-3)); }
+  .btn-outline-light { border: 1px solid rgba(148, 163, 184, 0.4); }
+  .nav-tabs .nav-link {
+    color: #94a3b8; border: none; padding: 10px 18px;
+    border-radius: 10px 10px 0 0;
+  }
+  .nav-tabs .nav-link.active {
+    background: rgba(99, 102, 241, 0.2);
+    color: #c7d2fe;
+    font-weight: 600;
+  }
+  .nav-tabs { border-bottom: 1px solid rgba(99, 102, 241, 0.25); }
+  .form-control, .form-select {
+    background: rgba(15, 23, 42, 0.6) !important;
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    color: #e2e8f0 !important;
+  }
+  .form-control:focus {
+    background: rgba(15, 23, 42, 0.8);
+    border-color: var(--brand-2);
+    box-shadow: 0 0 0 0.25rem rgba(99, 102, 241, 0.25);
+  }
+  .stat-card {
+    border-radius: 12px;
+    padding: 16px 20px;
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.15), rgba(14, 165, 233, 0.08));
+    border: 1px solid rgba(99, 102, 241, 0.25);
+  }
+  .stat-card .label { font-size: 12px; color: #94a3b8; text-transform: uppercase; letter-spacing: .5px; }
+  .stat-card .value { font-size: 24px; font-weight: 700; color: #c7d2fe; }
+  .badge-sop { background: rgba(14, 165, 233, 0.2); color: #7dd3fc; border: 1px solid rgba(14,165,233,.4); }
+  .badge-erp { background: rgba(139, 92, 246, 0.2); color: #c4b5fd; border: 1px solid rgba(139,92,246,.4); }
+  .badge-ai  { background: rgba(34, 197, 94, 0.15); color: #86efac; border: 1px solid rgba(34,197,94,.35); }
+  .step-flow {
+    display: flex; align-items: stretch; justify-content: space-between;
+    padding: 10px; border-radius: 12px;
+    background: rgba(15, 23, 42, 0.5);
+    border: 1px dashed rgba(99, 102, 241, 0.3);
+    margin-bottom: 16px;
+  }
+  .step-box { flex: 1; text-align: center; padding: 10px; position: relative; }
+  .step-box::after {
+    content: "→"; position: absolute; right: -8px; top: 38%;
+    color: rgba(99, 102, 241, 0.6); font-size: 20px; font-weight: 700;
+  }
+  .step-box:last-child::after { content: ""; }
+  .step-icon { font-size: 28px; }
+  .step-title { font-weight: 600; font-size: 13px; margin-top: 4px; }
+  .step-desc { font-size: 11px; color: #94a3b8; }
+  .json-pre {
+    background: #020617; border: 1px solid rgba(99, 102, 241, 0.25);
+    border-radius: 10px; padding: 14px; max-height: 280px;
+    overflow: auto; font-family: 'Consolas', monospace; font-size: 12px;
+    color: #a5b4fc; line-height: 1.55;
+  }
+  .pulse-dot {
+    display: inline-block; width: 10px; height: 10px; border-radius: 50%;
+    background: #22c55e; box-shadow: 0 0 0 0 rgba(34, 197, 94, .7);
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse {
+    0% { box-shadow: 0 0 0 0 rgba(34, 197, 94, .7); }
+    70% { box-shadow: 0 0 0 10px rgba(34, 197, 94, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+  }
+  .answer-box {
+    background: linear-gradient(135deg, rgba(34, 197, 94, 0.06), rgba(14, 165, 233, 0.06));
+    border: 1px solid rgba(34, 197, 94, 0.3);
+    border-radius: 12px; padding: 18px;
+    line-height: 1.75; white-space: pre-wrap;
+  }
+  .tag-chip {
+    display: inline-block; padding: 3px 10px; border-radius: 999px;
+    font-size: 11px; margin: 2px;
+    background: rgba(99, 102, 241, 0.15); border: 1px solid rgba(99,102,241,.3);
+    color: #c7d2fe;
+  }
+  .action-step {
+    border-left: 3px solid var(--brand-2);
+    background: rgba(99, 102, 241, 0.05);
+    padding: 10px 14px; border-radius: 0 10px 10px 0;
+    margin-bottom: 10px;
+  }
+  .action-ok   { border-left-color: #22c55e; background: rgba(34,197,94,.06); }
+  .action-warn { border-left-color: #eab308; background: rgba(234,179,8,.06); }
+  footer {
+    border-top: 1px solid rgba(148, 163, 184, 0.15);
+    padding: 24px 0; color: #64748b; font-size: 13px; text-align: center;
+  }
+</style>
+</head>
+<body>
+
+<!-- NAVBAR -->
+<nav class="navbar navbar-expand-lg">
+  <div class="container">
+    <a class="navbar-brand d-flex align-items-center gap-2" href="#">
+      <i class="bi bi-diagram-3-fill text-primary" style="font-size:24px"></i>
+      <div>
+        <span class="gradient-text d-block" style="font-size:18px">Agentic AI ERP</span>
+        <small class="text-secondary" style="font-size:10px">v2.0 · Dual KB + SOP→ERP Router</small>
+      </div>
+    </a>
+    <div class="ms-auto d-flex align-items-center gap-3">
+      <div><span class="pulse-dot"></span> <small id="connStatus" class="text-secondary">menghubungkan...</small></div>
+      <a href="/docs" target="_blank" class="btn btn-sm btn-outline-light"><i class="bi bi-book"></i> Docs</a>
+    </div>
+  </div>
+</nav>
+
+<div class="container py-4">
+
+  <!-- HEADER -->
+  <div class="row mb-4">
+    <div class="col-lg-8">
+      <h1 class="display-6 mb-2"><span class="gradient-text">Agentic AI ERP</span> Dashboard</h1>
+      <p class="lead text-secondary mb-0">
+        Dua Knowledge Base (SOP + ERP Docs) · LLM Router otomatis baca SOP → decide action ERP → jawab akurat.
+      </p>
+    </div>
+    <div class="col-lg-4 d-flex align-items-stretch">
+      <div class="card w-100">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <span class="badge-sop badge">KB SOP</span>
+            <span class="badge-erp badge">KB ERP Docs</span>
+            <span class="badge-ai badge">Agentic Router</span>
+          </div>
+          <div class="step-flow">
+            <div class="step-box">
+              <div class="step-icon">📘</div>
+              <div class="step-title">Read SOP</div>
+              <div class="step-desc">Cari prosedur</div>
+            </div>
+            <div class="step-box">
+              <div class="step-icon">🧭</div>
+              <div class="step-title">Router</div>
+              <div class="step-desc">Decide Action</div>
+            </div>
+            <div class="step-box">
+              <div class="step-icon">⚙️</div>
+              <div class="step-title">Execute</div>
+              <div class="step-desc">Query ERP Data</div>
+            </div>
+            <div class="step-box">
+              <div class="step-icon">✍️</div>
+              <div class="step-title">Final</div>
+              <div class="step-desc">Jawaban LLM</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- STATS -->
+  <div class="row g-3 mb-4" id="statsRow">
+    <div class="col-sm-6 col-lg-2"><div class="stat-card"><div class="label">KB SOP</div><div class="value" id="stSop">-</div></div></div>
+    <div class="col-sm-6 col-lg-2"><div class="stat-card"><div class="label">KB ERP Docs</div><div class="value" id="stErpDocs">-</div></div></div>
+    <div class="col-sm-6 col-lg-2"><div class="stat-card"><div class="label">Produk</div><div class="value" id="stProd">-</div></div></div>
+    <div class="col-sm-6 col-lg-2"><div class="stat-card"><div class="label">Customer</div><div class="value" id="stCust">-</div></div></div>
+    <div class="col-sm-6 col-lg-2"><div class="stat-card"><div class="label">Order</div><div class="value" id="stOrder">-</div></div></div>
+    <div class="col-sm-6 col-lg-2"><div class="stat-card"><div class="label">LLM Ready</div><div class="value" id="stLLM">-</div></div></div>
+  </div>
+
+  <!-- TABS -->
+  <ul class="nav nav-tabs mb-3" id="mainTab" role="tablist">
+    <li class="nav-item" role="presentation">
+      <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tabAgentic" type="button">
+        <i class="bi bi-robot"></i> ⭐ Agentic QA
+      </button>
+    </li>
+    <li class="nav-item" role="presentation">
+      <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tabKnowledge" type="button">
+        <i class="bi bi-book"></i> Dual Knowledge Base
+      </button>
+    </li>
+    <li class="nav-item" role="presentation">
+      <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tabERP" type="button">
+        <i class="bi bi-briefcase"></i> ERP CRUD
+      </button>
+    </li>
+    <li class="nav-item" role="presentation">
+      <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tabReport" type="button">
+        <i class="bi bi-graph-up-arrow"></i> AI Report Generator
+      </button>
+    </li>
+  </ul>
+
+  <div class="tab-content" id="tabContent">
+
+    <!-- ============================================================ -->
+    <!-- TAB: AGENTIC QA (ENDPOINT UTAMA)                             -->
+    <!-- ============================================================ -->
+    <div class="tab-pane fade show active" id="tabAgentic" role="tabpanel">
+      <div class="row g-3">
+        <div class="col-lg-5">
+          <div class="card h-100">
+            <div class="card-header"><i class="bi bi-chat-dots"></i> Pertanyaan User</div>
+            <div class="card-body">
+              <label class="form-label">Tanyakan apa saja (prosedur / stok / produk / laporan)</label>
+              <textarea id="agenticQuestion" rows="5" class="form-control"
+                placeholder="Contoh: 'Laptop NocBook saya layarnya pecah, bagaimana klaim garansinya?'"></textarea>
+              <div class="mt-2">
+                <small class="text-secondary">Coba quick prompt &rarr;</small>
+                <div class="mt-1">
+                  <button class="tag-chip" onclick="setQ('Laptop NocBook saya layarnya pecah, bagaimana klaim garansinya?')">Klaim Garansi</button>
+                  <button class="tag-chip" onclick="setQ('Ada produk stok kurang dari 20? Saya mau reorder besok.')">Stok Kritis</button>
+                  <button class="tag-chip" onclick="setQ('Analisa laporan penjualan 14 hari terakhir + top 3 produk terlarisnya!')">Laporan 14 Hari</button>
+                  <button class="tag-chip" onclick="setQ('Saya mau beli NocMouse X1, harganya berapa? Ready stok?')">Cek Produk</button>
+                  <button class="tag-chip" onclick="setQ('Bagaimana prosedur pengajuan return / pengembalian barang?')">Prosedur Return</button>
+                </div>
+              </div>
+              <div class="mt-3 d-flex gap-2">
+                <label class="form-label mb-0 me-2" style="padding-top:6px">k SOP:</label>
+                <input id="agenticK" type="number" min="1" max="10" value="4" style="width:70px" class="form-control form-control-sm">
+                <button class="btn btn-primary ms-auto" id="btnRunAgentic" onclick="runAgentic()">
+                  <i class="bi bi-lightning-charge"></i> Jalankan Agentic Pipeline
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-lg-7">
+          <div class="card h-100">
+            <div class="card-header d-flex justify-content-between">
+              <span><i class="bi bi-cpu"></i> Pipeline Output</span>
+              <span class="badge-ai badge" id="agenticBadge">Idle</span>
+            </div>
+            <div class="card-body">
+              <!-- STEP 1: SOP Context -->
+              <div class="mb-3">
+                <h6 class="mb-2"><span class="badge-sop badge me-1">Step 1</span> SOP KB Context (yang match dengan pertanyaan)</h6>
+                <div id="sopContext" class="json-pre" style="max-height:120px">Menunggu pertanyaan user...</div>
+              </div>
+              <!-- STEP 2: Plan (Router) -->
+              <div class="mb-3">
+                <h6 class="mb-2"><span class="badge-erp badge me-1">Step 2</span> Router Plan — Action ERP yang dipilih</h6>
+                <div id="agenticPlan" class="json-pre" style="max-height:120px">(akan muncul setelah Step 1 selesai)</div>
+              </div>
+              <!-- STEP 3: Execute Actions -->
+              <div class="mb-3">
+                <h6 class="mb-2"><span class="badge-erp badge me-1">Step 3</span> Execute Actions — Hasil query data ERP</h6>
+                <div id="agenticSteps" style="max-height:200px;overflow:auto;padding-right:6px">
+                  <div class="text-secondary small">(action step-by-step akan tampil di sini)</div>
+                </div>
+              </div>
+              <!-- STEP 4: Final Answer -->
+              <div>
+                <h6 class="mb-2"><span class="badge-ai badge me-1">Step 4</span> Final Answer — Jawaban Natural untuk User</h6>
+                <div id="agenticFinal" class="answer-box">Selesaikan pertanyaan di panel kiri, kemudian klik <b>Jalankan Agentic Pipeline</b>.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- TAB: DUAL KNOWLEDGE BASE                                     -->
+    <!-- ============================================================ -->
+    <div class="tab-pane fade" id="tabKnowledge" role="tabpanel">
+      <div class="row g-3">
+        <div class="col-lg-6">
+          <div class="card">
+            <div class="card-header"><i class="bi bi-shield-check"></i> 📘 KB #1 — SOP (Standar Operasional Prosedur)</div>
+            <div class="card-body">
+              <div class="row g-2 mb-3">
+                <div class="col-12">
+                  <label class="form-label">Search SOP (semantic)</label>
+                  <div class="input-group">
+                    <input id="sopQ" class="form-control" placeholder="contoh: cara klaim garansi NocBook">
+                    <button class="btn btn-primary" onclick="searchSOP()"><i class="bi bi-search"></i></button>
+                  </div>
+                </div>
+                <div class="col-12">
+                  <details>
+                    <summary class="text-secondary small" style="cursor:pointer">➕ Ingest SOP baru via teks</summary>
+                    <div class="mt-2">
+                      <input id="sopSource" placeholder="Source (misal: SOP_Ubah_Alamat)" class="form-control mb-2">
+                      <textarea id="sopContent" rows="4" placeholder="Isi SOP..." class="form-control mb-2"></textarea>
+                      <button class="btn btn-sm btn-outline-light" onclick="ingestSOP()"><i class="bi bi-cloud-upload"></i> Ingest ke KB SOP</button>
+                    </div>
+                  </details>
+                </div>
+              </div>
+              <div id="sopResult" class="json-pre">Klik search / tekan Enter untuk melihat dokumen SOP.</div>
+            </div>
+          </div>
+        </div>
+        <div class="col-lg-6">
+          <div class="card">
+            <div class="card-header"><i class="bi bi-journal-text"></i> 📗 KB #2 — ERP Docs (Spesifikasi, Supplier, Katalog)</div>
+            <div class="card-body">
+              <div class="row g-2 mb-3">
+                <div class="col-12">
+                  <label class="form-label">Search ERP Docs (semantic)</label>
+                  <div class="input-group">
+                    <input id="edQ" class="form-control" placeholder="contoh: spesifikasi NocBook Pro 14 OLED">
+                    <button class="btn btn-primary" onclick="searchErpDocs()"><i class="bi bi-search"></i></button>
+                  </div>
+                </div>
+                <div class="col-12">
+                  <details>
+                    <summary class="text-secondary small" style="cursor:pointer">➕ Ingest ERP Doc baru</summary>
+                    <div class="mt-2">
+                      <input id="edSource" placeholder="Source (misal: ERP_Spec_NocHub)" class="form-control mb-2">
+                      <textarea id="edContent" rows="4" placeholder="Isi spesifikasi/katalog..." class="form-control mb-2"></textarea>
+                      <button class="btn btn-sm btn-outline-light" onclick="ingestErpDocs()"><i class="bi bi-cloud-upload"></i> Ingest ke KB ERP Docs</button>
+                    </div>
+                  </details>
+                </div>
+              </div>
+              <div id="edResult" class="json-pre">Klik search untuk melihat dokumen ERP Docs.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- TAB: ERP CRUD                                                -->
+    <!-- ============================================================ -->
+    <div class="tab-pane fade" id="tabERP" role="tabpanel">
+      <div class="row g-3">
+        <div class="col-lg-5">
+          <div class="card mb-3">
+            <div class="card-header"><i class="bi bi-box-seam"></i> Cari Produk (semantic search by nama)</div>
+            <div class="card-body">
+              <div class="input-group mb-3">
+                <input id="prodQ" class="form-control" placeholder="contoh: laptop / mouse / stok > 0">
+                <button class="btn btn-primary" onclick="listProducts()"><i class="bi bi-search"></i></button>
+              </div>
+              <div id="prodResult" class="json-pre" style="max-height:320px"></div>
+            </div>
+          </div>
+          <div class="card mb-3">
+            <div class="card-header"><i class="bi bi-people"></i> Daftar Customer</div>
+            <div class="card-body">
+              <div class="input-group mb-3">
+                <input id="custQ" class="form-control" placeholder="filter by nama">
+                <button class="btn btn-primary" onclick="listCustomers()"><i class="bi bi-search"></i></button>
+              </div>
+              <div id="custResult" class="json-pre" style="max-height:220px"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-lg-7">
+          <div class="card mb-3">
+            <div class="card-header d-flex justify-content-between">
+              <span><i class="bi bi-cart-check"></i> Daftar Order Terbaru</span>
+              <button class="btn btn-sm btn-outline-light" onclick="listOrders()"><i class="bi bi-arrow-clockwise"></i> Refresh</button>
+            </div>
+            <div class="card-body">
+              <div id="orderResult" class="json-pre" style="max-height:260px"></div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header"><i class="bi bi-exclamation-triangle"></i> 🚨 Low-Stock Report + Sales Report (Quick View)</div>
+            <div class="card-body">
+              <div class="row g-2 mb-3">
+                <div class="col-sm-4">
+                  <label class="form-label small">Threshold Stok</label>
+                  <input id="lowThr" type="number" value="50" class="form-control form-control-sm">
+                </div>
+                <div class="col-sm-4">
+                  <label class="form-label small">Sales N Hari</label>
+                  <input id="salesDays" type="number" value="14" class="form-control form-control-sm">
+                </div>
+                <div class="col-sm-4 d-flex align-items-end">
+                  <button class="btn btn-primary w-100" onclick="loadRawReports()"><i class="bi bi-graph-up"></i> Load Report</button>
+                </div>
+              </div>
+              <div class="row g-3">
+                <div class="col-md-6">
+                  <h6 class="small text-uppercase text-secondary mb-1">Low-Stock</h6>
+                  <div id="lowResult" class="json-pre" style="max-height:260px"></div>
+                </div>
+                <div class="col-md-6">
+                  <h6 class="small text-uppercase text-secondary mb-1">Sales Report (raw)</h6>
+                  <div id="salesResult" class="json-pre" style="max-height:260px"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- TAB: AI REPORT GENERATOR                                     -->
+    <!-- ============================================================ -->
+    <div class="tab-pane fade" id="tabReport" role="tabpanel">
+      <div class="row g-3">
+        <div class="col-lg-4">
+          <div class="card mb-3">
+            <div class="card-header"><i class="bi bi-cash-coin"></i> AI Narrative — Laporan Penjualan</div>
+            <div class="card-body">
+              <label class="form-label">Periode (hari)</label>
+              <input id="srDays" type="number" value="7" class="form-control mb-3">
+              <button class="btn btn-primary w-100" onclick="genSalesReport()"><i class="bi bi-magic"></i> Generate Laporan Naratif</button>
+              <div class="mt-3"><small class="text-secondary">Output: ringkasan + 4 paragraf analisa bisnis formal via LLM</small></div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header"><i class="bi bi-box-seam-fill"></i> AI Narrative — Notulensi Stok Kritis</div>
+            <div class="card-body">
+              <label class="form-label">Threshold stok</label>
+              <input id="lsThr" type="number" value="30" class="form-control mb-3">
+              <button class="btn btn-primary w-100" onclick="genLowStockReport()"><i class="bi bi-magic"></i> Generate Notulensi</button>
+              <div class="mt-3"><small class="text-secondary">Output: 6 poin notulensi manajer logistik via LLM</small></div>
+            </div>
+          </div>
+        </div>
+        <div class="col-lg-8">
+          <div class="card mb-3">
+            <div class="card-header">Hasil AI Laporan Penjualan</div>
+            <div class="card-body">
+              <div class="mb-2" id="srMeta"></div>
+              <div id="srNarrative" class="answer-box">(klik tombol di panel kiri)</div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header">Hasil Notulensi Stok Kritis</div>
+            <div class="card-body">
+              <div class="mb-2" id="lsMeta"></div>
+              <div id="lsNarrative" class="answer-box">(klik tombol di panel kiri)</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<footer>
+  Agentic AI ERP v2.0 · Dual Knowledge Base (SOP + ERP Docs) + Agentic SOP→ERP Router &nbsp;|&nbsp;
+  FastAPI · DuckDB VSS · SentenceTransformer · llama-server · Bootstrap 5
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+        integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
+        crossorigin="anonymous"></script>
+<script>
+// =========================================================
+// CONFIG
+// =========================================================
+const API_BASE = location.origin.includes('8080') ? '' : 'http://127.0.0.1:8080';
+const $ = id => document.getElementById(id);
+
+// =========================================================
+// HELPERS
+// =========================================================
+async function api(url, opts = {}) {
+  if (!opts.headers) opts.headers = {};
+  if (!(opts.body instanceof FormData)) opts.headers['Content-Type'] = 'application/json';
+  const res = await fetch(API_BASE + url, opts);
+  return { ok: res.ok, status: res.status, data: await res.json().catch(() => ({})) };
+}
+const fmtRp = n => typeof n === 'number'
+  ? 'Rp' + n.toLocaleString('id-ID')
+  : (n || '-');
+const fmtJson = obj => JSON.stringify(obj, null, 2);
+
+// =========================================================
+// ONLOAD: Health + Stats
+// =========================================================
+document.addEventListener('DOMContentLoaded', async () => {
+  try {
+    const h = await api('/health');
+    if (h.ok) {
+      $('connStatus').innerHTML = '<span class="text-success">terhubung ' + (h.data.version || '') + '</span>';
+      $('stSop').textContent     = h.data.counts.kb_sop_chunks;
+      $('stErpDocs').textContent = h.data.counts.kb_erp_docs_chunks;
+      $('stProd').textContent    = h.data.counts.products;
+      $('stCust').textContent    = h.data.counts.customers;
+      $('stOrder').textContent   = h.data.counts.orders;
+      $('stLLM').innerHTML       = h.data.llm.llama_ready
+        ? '<span class="text-success">YES</span>'
+        : '<span class="text-warning">NO (rule-based)</span>';
+    } else $('connStatus').innerHTML = '<span class="text-danger">gagal terhubung ke API. Pastikan run.bat telah dijalankan di port 8080.</span>';
+  } catch (e) {
+    $('connStatus').innerHTML = '<span class="text-danger">API offline. Jalankan run.bat</span>';
+  }
+  // Load initial ERP view
+  listProducts();
+  listCustomers();
+  listOrders();
+  loadRawReports();
+});
+
+// =========================================================
+// AGENTIC QA (ENDPOINT UTAMA)
+// =========================================================
+function setQ(q) { $('agenticQuestion').value = q; }
+
+async function runAgentic() {
+  const q = $('agenticQuestion').value.trim();
+  if (!q) { alert('Masukkan pertanyaan terlebih dahulu.'); return; }
+  const k = parseInt($('agenticK').value || '4');
+  const badge = $('agenticBadge');
+  badge.className = 'badge-erp badge'; badge.textContent = '🔍 Step 1: Baca SOP KB...';
+  $('sopContext').innerHTML = 'Mencari SOP paling relevan...';
+  $('agenticPlan').innerHTML = '(router belum berjalan)';
+  $('agenticSteps').innerHTML = '<div class="text-secondary small">(menunggu step 2)</div>';
+  $('agenticFinal').innerHTML = '<div class="text-secondary">Agentic pipeline sedang berjalan...</div>';
+
+  try {
+    const res = await api('/ai/agentic/qa', { method: 'POST', body: JSON.stringify({ q, k }) });
+    if (!res.ok) throw new Error('HTTP ' + res.status + ': ' + JSON.stringify(res.data));
+    const d = res.data;
+
+    // Step 1: SOP context
+    badge.className = 'badge-erp badge'; badge.textContent = '✅ Step 1 selesai';
+    if (d.sop_context && d.sop_context.length) {
+      $('sopContext').innerHTML = d.sop_context.map((s, i) =>
+        `<div style="margin-bottom:8px"><b>[${i+1}] ${s.source}</b> <span class="badge-sop badge">score ${(s.score||0).toFixed(3)}</span><br><small>${(s.content||'').slice(0,220)}${s.content.length>220?'...':''}</small></div>`
+      ).join('');
+    } else {
+      $('sopContext').innerHTML = '<span class="text-warning">Tidak ada SOP yang match.</span>';
+    }
+
+    // Step 2: Router plan
+    await new Promise(r => setTimeout(r, 200));
+    badge.className = 'badge-erp badge'; badge.textContent = '🧭 Step 2: Router decide actions';
+    if (d.plan && d.plan.actions) {
+      $('agenticPlan').innerHTML =
+        `<div style="margin-bottom:6px"><b>SOP Summary:</b> <small>${escapeHtml(d.plan.sop_summary||'').slice(0,300)}</small></div>` +
+        d.plan.actions.map(a =>
+          `<span class="tag-chip"><b>${a.action}</b>${a.param?' ➜ param: '+escapeHtml(String(a.param).slice(0,20)):''} <small class="text-secondary">(${escapeHtml((a.reason||'').slice(0,50))})</small></span>`
+        ).join(' ');
+    }
+
+    // Step 3: Steps executed
+    await new Promise(r => setTimeout(r, 200));
+    badge.className = 'badge-erp badge'; badge.textContent = '⚙️ Step 3: Execute ERP actions';
+    if (d.steps && d.steps.length) {
+      $('agenticSteps').innerHTML = d.steps.map(s => {
+        const statusOK = s.result && s.result.status === 'ok';
+        const cls = statusOK ? 'action-step action-ok' : 'action-step action-warn';
+        let resultSummary = fmtJson(s.result);
+        if (resultSummary.length > 400) resultSummary = resultSummary.slice(0, 400) + '\n... (truncated)';
+        return `<div class="${cls}">
+          <div style="display:flex;justify-content:space-between">
+            <b>${s.action}</b>
+            <span class="badge ${statusOK?'badge-ai':'badge-erp'} badge">${statusOK?'OK':s.result.status}</span>
+          </div>
+          ${s.reason?`<div class="small text-secondary">Reason: ${escapeHtml(s.reason)}</div>`:''}
+          ${s.param?`<div class="small">Param: <code>${escapeHtml(String(s.param))}</code></div>`:''}
+          <div class="small text-primary mt-1">Result:</div>
+          <div class="json-pre" style="max-height:120px;padding:8px;font-size:11px;margin-top:4px">${resultSummary}</div>
+        </div>`;
+      }).join('');
+    }
+
+    // Step 4: Final answer
+    await new Promise(r => setTimeout(r, 250));
+    badge.className = 'badge-ai badge'; badge.textContent = '✅ Selesai!';
+    $('agenticFinal').textContent = d.final_answer || '(tidak ada jawaban final)';
+
+  } catch (e) {
+    badge.className = 'badge-erp badge'; badge.textContent = '❌ ERROR';
+    $('agenticFinal').innerHTML = `<div class="text-danger">Error: ${escapeHtml(e.message)}</div>
+      <div class="text-secondary small mt-2">Pastikan API FastAPI berjalan di port 8080 (klik Jalankan run.bat). Cek Console untuk info lebih lanjut.</div>`;
+    console.error(e);
+  }
+}
+
+// =========================================================
+// KNOWLEDGE DUAL KB
+// =========================================================
+async function searchSOP() {
+  const q = $('sopQ').value.trim() || '*';
+  const res = await api('/sop/search', { method: 'POST', body: JSON.stringify({ q, k:5 }) });
+  const data = res.data || [];
+  $('sopResult').innerHTML = data.length ? data.map(r =>
+    `<div style="margin-bottom:12px">
+      <div><b>${escapeHtml(r.source)}</b> <span class="badge-sop badge">score ${(r.score||0).toFixed(3)}</span></div>
+      <small>${escapeHtml(r.content)}</small>
+    </div>`).join('') : '<span class="text-warning">(tidak ada hasil)</span>';
+}
+$('sopQ') && $('sopQ').addEventListener('keydown', e => { if (e.key==='Enter') searchSOP(); });
+
+async function ingestSOP() {
+  const source  = $('sopSource').value.trim();
+  const content = $('sopContent').value.trim();
+  if (!source || !content) { alert('Isi source + content SOP.'); return; }
+  const res = await api('/sop/ingest/text', { method:'POST', body: JSON.stringify({ source, content }) });
+  alert(res.ok ? `Berhasil di-ingest ke KB SOP!\nTotal chunks: ${res.data.total_chunks}\nTotal words: ${res.data.total_words}`
+              : 'Gagal ingest: ' + JSON.stringify(res.data));
+}
+
+async function searchErpDocs() {
+  const q = $('edQ').value.trim() || '*';
+  const res = await api('/erp-docs/search', { method: 'POST', body: JSON.stringify({ q, k:5 }) });
+  const data = res.data || [];
+  $('edResult').innerHTML = data.length ? data.map(r =>
+    `<div style="margin-bottom:12px">
+      <div><b>${escapeHtml(r.source)}</b> <span class="badge-erp badge">score ${(r.score||0).toFixed(3)}</span></div>
+      <small>${escapeHtml(r.content)}</small>
+    </div>`).join('') : '<span class="text-warning">(tidak ada hasil)</span>';
+}
+$('edQ') && $('edQ').addEventListener('keydown', e => { if (e.key==='Enter') searchErpDocs(); });
+
+async function ingestErpDocs() {
+  const source  = $('edSource').value.trim();
+  const content = $('edContent').value.trim();
+  if (!source || !content) { alert('Isi source + content ERP Doc.'); return; }
+  const res = await api('/erp-docs/ingest/text', { method:'POST', body: JSON.stringify({ source, content }) });
+  alert(res.ok ? `Berhasil di-ingest ke KB ERP Docs!\nChunks: ${res.data.total_chunks}\nWords: ${res.data.total_words}`
+              : 'Gagal ingest: ' + JSON.stringify(res.data));
+}
+
+// =========================================================
+// ERP MODULE
+// =========================================================
+async function listProducts() {
+  const name = $('prodQ').value.trim();
+  const res = await api('/products' + (name ? '?name='+encodeURIComponent(name):''));
+  const rows = res.data || [];
+  $('prodResult').innerHTML = rows.length ? rows.map(p =>
+    `<div style="padding:6px 0;border-bottom:1px dashed rgba(148,163,184,.2)">
+      <div style="display:flex;justify-content:space-between">
+        <b>${escapeHtml(p.name)}</b>
+        <span class="badge-erp badge">${escapeHtml(p.id.slice(0,8))}</span>
+      </div>
+      <div class="small">Harga: <b class="text-warning">${fmtRp(p.price)}</b> · Stok: <b class="${p.stock<10?'text-danger':'text-success'}">${p.stock}</b> unit</div>
+    </div>`).join('') : '<span class="text-warning">(tidak ada produk)</span>';
+}
+$('prodQ') && $('prodQ').addEventListener('keydown', e => { if (e.key==='Enter') listProducts(); });
+
+async function listCustomers() {
+  const name = $('custQ').value.trim();
+  const res = await api('/customers' + (name ? '?name='+encodeURIComponent(name):''));
+  const rows = res.data || [];
+  $('custResult').innerHTML = rows.length ? rows.map(c =>
+    `<div style="padding:6px 0;border-bottom:1px dashed rgba(148,163,184,.2)">
+      <b>${escapeHtml(c.name)}</b> <span class="badge-erp badge">${escapeHtml(c.id.slice(0,8))}</span><br>
+      <small>${escapeHtml(c.email||'-')} · ${escapeHtml(c.phone||'-')}</small>
+    </div>`).join('') : '<span class="text-warning">(tidak ada customer)</span>';
+}
+$('custQ') && $('custQ').addEventListener('keydown', e => { if (e.key==='Enter') listCustomers(); });
+
+async function listOrders() {
+  const res = await api('/orders?limit=10');
+  const rows = res.data || [];
+  $('orderResult').innerHTML = rows.length ? rows.map(o => {
+    const statusBadge =
+      o.status === 'completed' ? 'badge-ai' :
+      o.status === 'pending'   ? 'badge-erp' :
+      o.status === 'cancelled' ? 'text-bg-danger' : 'badge-sop';
+    return `<div style="padding:8px 0;border-bottom:1px dashed rgba(148,163,184,.2)">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div>
+          <b>${escapeHtml(o.id.slice(0,10))}...</b> · ${escapeHtml(o.customer_name)}<br>
+          <small class="text-secondary">${escapeHtml(String(o.created_at).slice(0,19))}</small>
+        </div>
+        <div style="text-align:right">
+          <div class="badge ${statusBadge}">${o.status}</div>
+          <div class="text-warning">${fmtRp(o.total_amount)}</div>
+        </div>
+      </div>
+    </div>`;
+  }).join('') : '<span class="text-warning">(belum ada order)</span>';
+}
+
+async function loadRawReports() {
+  const thr = parseInt($('lowThr').value || '10');
+  const days = parseInt($('salesDays').value || '7');
+  const [low, sales] = await Promise.all([
+    api('/report/low-stock?threshold=' + thr),
+    api('/report/sales?days=' + days),
+  ]);
+  $('lowResult').textContent = fmtJson(low.data);
+  $('salesResult').textContent = fmtJson(sales.data);
+}
+
+// =========================================================
+// AI REPORT GENERATOR (Sesi 7 style)
+// =========================================================
+async function genSalesReport() {
+  const days = parseInt($('srDays').value || '7');
+  $('srNarrative').innerHTML = '<span class="text-secondary">Sedang generate laporan penjualan via AI...</span>';
+  $('srMeta').innerHTML = '';
+  const res = await api('/ai/report/sales', { method:'POST', body: JSON.stringify({ days }) });
+  const d = res.data || {};
+  $('srMeta').innerHTML = `<span class="badge-sop badge">Period: ${d.period_days||days} hari</span>
+    <span class="badge-erp badge">LLM used: ${d.llm_used?'YES':'NO (data only)'}</span>
+    <span class="badge-ai badge">Total Revenue: ${d.raw_data?fmtRp(d.raw_data.total_revenue):'-'}</span>`;
+  $('srNarrative').textContent = d.narrative || '(tidak ada narasi)';
+}
+
+async function genLowStockReport() {
+  const thr = parseInt($('lsThr').value || '30');
+  $('lsNarrative').innerHTML = '<span class="text-secondary">Sedang generate notulensi stok via AI...</span>';
+  $('lsMeta').innerHTML = '';
+  const res = await api('/ai/report/low-stock', { method:'POST', body: JSON.stringify({ threshold: thr }) });
+  const d = res.data || {};
+  $('lsMeta').innerHTML = `<span class="badge-sop badge">Threshold: ${d.threshold||thr}</span>
+    <span class="badge-erp badge">LLM used: ${d.llm_used?'YES':'NO (data only)'}</span>
+    <span class="badge-ai badge">Total SKU: ${d.raw_data?(d.raw_data.products||[]).length:'-'}</span>`;
+  $('lsNarrative').textContent = d.narrative || '(tidak ada narasi)';
+}
+
+// =========================================================
+// UTIL: HTML escape
+// =========================================================
+function escapeHtml(str) {
+  if (str === null || str === undefined) return '';
+  return String(str)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;').replace(/'/g,'&#039;');
+}
+</script>
+</body>
+</html>
