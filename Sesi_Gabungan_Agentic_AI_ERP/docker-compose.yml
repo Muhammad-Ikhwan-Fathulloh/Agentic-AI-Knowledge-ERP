@@ -1,6 +1,7 @@
 services:
   agentic-ai-erp:
     build: .
+    image: ikhwan17/agentic-ai-erp:latest
     container_name: agentic_ai_erp
     ports:
       - "8080:8080"
@@ -14,6 +15,7 @@ services:
       - LLAMA_THREADS=3
       - LLAMA_BASE_URL=http://127.0.0.1:8088
     volumes:
+      - ./app:/app/app
       - erp_data:/app/data
       - ../models:/models
     restart: unless-stopped

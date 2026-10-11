@@ -1,0 +1,40 @@
+ERROR:    Traceback (most recent call last):
+  File "/usr/local/lib/python3.11/site-packages/starlette/routing.py", line 693, in lifespan
+    async with self.lifespan_context(app) as maybe_state:
+  File "/usr/local/lib/python3.11/contextlib.py", line 210, in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/app/app/main.py", line 93, in lifespan
+    init_db()
+  File "/app/app/database.py", line 123, in init_db
+    con.execute("""
+duckdb.duckdb.ParserException: Parser Error: FOREIGN KEY constraints cannot use CASCADE, SET NULL or SET DEFAULT
+
+ERROR:    Application startup failed. Exiting.
+/usr/local/lib/python3.11/site-packages/pydantic/_internal/_fields.py:132: UserWarning: Field "model_download_auto" in Settings has conflict with protected namespace "model_".
+
+You may be able to resolve this warning by setting `model_config['protected_namespaces'] = ('settings_',)`.
+  warnings.warn(
+/usr/local/lib/python3.11/site-packages/pydantic/_internal/_fields.py:132: UserWarning: Field "model_download_timeout_sec" in Settings has conflict with protected namespace "model_".
+
+You may be able to resolve this warning by setting `model_config['protected_namespaces'] = ('settings_',)`.
+  warnings.warn(
+/usr/local/lib/python3.11/site-packages/pydantic/_internal/_fields.py:132: UserWarning: Field "model_id" in ModelDownloadReq has conflict with protected namespace "model_".
+
+You may be able to resolve this warning by setting `model_config['protected_namespaces'] = ()`.
+  warnings.warn(
+INFO:     Started server process [1]
+INFO:     Waiting for application startup.
+ERROR:    Traceback (most recent call last):
+  File "/usr/local/lib/python3.11/site-packages/starlette/routing.py", line 693, in lifespan
+    async with self.lifespan_context(app) as maybe_state:
+  File "/usr/local/lib/python3.11/contextlib.py", line 210, in __aenter__
+    return await anext(self.gen)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/app/app/main.py", line 93, in lifespan
+    init_db()
+  File "/app/app/database.py", line 123, in init_db
+    con.execute("""
+duckdb.duckdb.ParserException: Parser Error: FOREIGN KEY constraints cannot use CASCADE, SET NULL or SET DEFAULT
+
+ERROR:    Application startup failed. Exiting.
