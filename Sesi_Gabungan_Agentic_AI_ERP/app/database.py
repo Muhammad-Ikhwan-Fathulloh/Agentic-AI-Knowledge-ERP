@@ -123,7 +123,7 @@ def init_db():
     con.execute("""
     CREATE TABLE IF NOT EXISTS chat_messages (
         id VARCHAR PRIMARY KEY,
-        session_id VARCHAR NOT NULL REFERENCES chat_sessions(id) ON DELETE CASCADE,
+        session_id VARCHAR NOT NULL,
         role VARCHAR NOT NULL CHECK (role IN ('user', 'assistant', 'system')),
         content TEXT NOT NULL,
         tokens_used INTEGER DEFAULT 0,
@@ -767,7 +767,7 @@ def chat_session_list(customer_id=None, limit=100) -> list:
             FROM chat_sessions s
             LEFT JOIN chat_messages m ON m.session_id = s.id
             WHERE s.customer_id = ?
-            GROUP BY s.id
+            GROUP BY s.id, s.title, s.customer_id, s.created_at, s.updated_at
             ORDER BY s.updated_at DESC
             LIMIT ?
         """, [customer_id, limit]).fetchall()
@@ -780,7 +780,7 @@ def chat_session_list(customer_id=None, limit=100) -> list:
                      ORDER BY m2.created_at DESC LIMIT 1) last_msg
             FROM chat_sessions s
             LEFT JOIN chat_messages m ON m.session_id = s.id
-            GROUP BY s.id
+            GROUP BY s.id, s.title, s.customer_id, s.created_at, s.updated_at
             ORDER BY s.updated_at DESC
             LIMIT ?
         """, [limit]).fetchall()

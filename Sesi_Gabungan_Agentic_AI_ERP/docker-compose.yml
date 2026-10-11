@@ -1,0 +1,22 @@
+services:
+  agentic-ai-erp:
+    build: .
+    container_name: agentic_ai_erp
+    ports:
+      - "8080:8080"
+    environment:
+      - DUCKDB_PATH=/app/data/agentic_ai_erp.duckdb
+      - LLM_MODEL_GGUF=qwen2.5-0.5b-instruct-q4_k_m.gguf
+      - MODEL_DOWNLOAD_AUTO=false
+      - LLAMA_PORT=8088
+      - LLAMA_CTX=2048
+      - LLAMA_NGL=0
+      - LLAMA_THREADS=3
+      - LLAMA_BASE_URL=http://127.0.0.1:8088
+    volumes:
+      - erp_data:/app/data
+      - ../models:/models
+    restart: unless-stopped
+
+volumes:
+  erp_data:

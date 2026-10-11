@@ -34,8 +34,10 @@ class Settings(BaseSettings):
     hf_mirror: str = ""
     """Opsional: mirror HuggingFace untuk wilayah APAC, misal 'https://hf-mirror.com'. Kosong = default."""
 
-    class Config:
-        env_file = ".env"
+    model_config = {
+        "env_file": ".env",
+        "protected_namespaces": ("settings_",),
+    }
 
 
 settings = Settings()

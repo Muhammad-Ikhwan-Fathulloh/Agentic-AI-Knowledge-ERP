@@ -70,36 +70,29 @@ Contoh jawaban jika user tanya stok NocBook:
 SEKARANG, KELUARKAN HANYA JSON:
 """
 
-FINAL_ANSWER_PROMPT = """Kamu adalah Customer Service Agent PROFESIONAL di NocStore (toko online perangkat keras komputer).
+FINAL_ANSWER_PROMPT = """Kamu adalah CS NocStore. Jawab PERTANYAAN USER dengan DATA ERP yang tersedia.
 
-Berikut adalah data yang kamu punya untuk menjawab user:
-A) RIWAYAT PERCAKAPAN SEBELUMNYA (untuk konteks referensi pronoun / follow-up):
+=== KONTEK ===
+RIWAYAT PERCAKAPAN:
 {chat_history}
 
-B) SOP YANG RELEVAN (ringkasan):
+SOP:
 {sop_summary}
 
-C) RINCIAN SOP ASLI (untuk pastikan kamu tidak salah):
-{sop_detail}
-
-D) DATA ERP YANG TELAH DIAMBIL BERDASARKAN PETUNJUK SOP:
+DATA ERP:
 {erp_results}
 
-E) PERTANYAAN USER SAAT INI:
+=== PERTANYAAN USER ===
 {question}
 
-=== INSTRUKSI MENJAWAB (CHATBOT-STYLE NATURAL) ===
-1. Jawab dalam BAHASA INDONESIA yang RAMAH, SANTUN, dan ALAMI (seperti chat biasa, bukan laporan formal).
-2. AWAL jawaban: jika percakapan baru, sapaan singkat ("Tentu saja!", "Baik, saya bantu jelaskan.", "Oh begitu kak, begini..."); jika follow-up, langsung jawab tanpa sapaan berulang.
-3. Sebutkan SOP HANYA JIKA RELEVAN (JANGAN selalu pakai kata "Sesuai SOP" secara kaku; bisa juga "Aturannya di NocStore...", "Kebijakan kami untuk...").
-4. SISPAN DATA ERP yang relevan (harga, stok, nama produk) dengan format NATURAL (JANGAN list berbentuk tabel JSON), misal: "Saat ini NocBook Pro 14 masih ada 25 unit stok, harganya Rp12.500.000".
-5. Jika user bertanya follow-up (misal "berapa harganya?"), GUNAKAN RIWAYAT PERCAKAPAN untuk mengetahui produk yang dimaksud, JANGAN balik bertanya lagi.
-6. AKHIR jawaban: next step yang membantu, misal "Mau saya bantu cek stok cabang terdekat?" atau "Kalau mau order bisa langsung via CS WA yah +62-811-0000-123". JANGAN selalu tulis nomor yang sama; sesuaikan konteks (jika sudah jelas bukan masalah order, tawarkan bantuan lain).
-7. JANGAN mengarang data. Jika data tidak ada, katakan secara sopan: "Saya belum dapat info detailnya untuk saat ini, kak. Bisa dihubungi CS WA biar tim data bantu cek ya?"
-8. Panjang jawaban ideal 2-6 kalimat. Jika perlu rinci, boleh sampai 8 kalimat, tapi JANGAN terlalu panjang lebar.
+=== ATURAN JAWAB ===
+1. JAWAB LANGSUNG ke inti. JANGAN mengulang pertanyaan, JANGAN bertanya balik.
+2. Gunakan HANYA data dari DATA ERP di atas. Sebutkan angka/nama produk secara eksplisit.
+3. Bahasa Indonesia ramah, 2-4 kalimat saja.
+4. Jika data tidak ada, katakan "Maaf, data belum tersedia" tanpa basa-basi.
+5. JANGAN menambahkan nomor CS atau ajakan bertanya lagi kecuali memang diminta.
 
-Jawabanmu (format chat biasa, tanpa point atau bullet jika tidak perlu):
-"""
+Jawaban:"""
 
 SALES_PROMPT = """Kamu adalah ANALIS BISNIS senior di toko online retail.
 Berikut adalah DATA PENJUALAN {days} hari TERAKHIR dalam format teks:
@@ -413,27 +406,47 @@ async def agentic_sop_erp_qa(
 
     # --- STEP 4 ---
     sop_summary = plan.get("sop_summary", "")
-    sop_detail_lines = []
-    for r in sop_rows[:3]:
-        sop_detail_lines.append(f"- {r[1]}: {r[2][:400]}")
-    sop_detail = "\n".join(sop_detail_lines) or "(tidak ada)"
 
     erp_lines = []
     for s in steps:
-        erp_lines.append(f"[Action: {s['action']} (param={s['param']!r})]")
-        erp_lines.append(f"   Reason: {s.get('reason','-')}")
-        erp_lines.append(f"   Result: {json.dumps(s['result'], ensure_ascii=False)[:800]}")
-    erp_results = "\n".join(erp_lines) if erp_lines else "(tidak ada action ERP)"
+        act, res = s["action"], s["result"]
+        erp_lines.append(f"- Action: {act}")
+        if res.get("status") == "ok":
+            if act == "lookup_product" and res.get("products"):
+                for p in res["products"][:5]:
+                    erp_lines.append(f"  Produk: {p['name']} | stok: {p['stock']} | harga: {p['price_idr']}")
+            elif act == "check_low_stock":
+                prods = res.get("products", [])
+                if prods:
+                    for p in prods[:5]:
+                        erp_lines.append(f"  Stok rendah: {p['name']} sisa {p['stock']} unit")
+                else:
+                    erp_lines.append(f"  Semua stok aman (threshold {res.get('threshold')})")
+            elif act == "check_sales_report":
+                erp_lines.append(f"  Total revenue: {res.get('total_revenue')}")
+                erp_lines.append(f"  Produk terlaris: {res.get('top_products')}")
+            elif act == "lookup_customer" and res.get("customers"):
+                for c in res["customers"][:3]:
+                    erp_lines.append(f"  Customer: {c['name']} | email: {c['email']}")
+            elif act == "lookup_order" and res.get("orders"):
+                for o in res["orders"][:3]:
+                    erp_lines.append(f"  Order #{o.get('id')}: {o.get('status')} | total: {o.get('total')}")
+            elif act == "lookup_erp_knowledge":
+                erp_lines.append(f"  Knowledge: {str(res.get('answer',''))[:300]}")
+            else:
+                erp_lines.append(f"  {str(res)[:300]}")
+        else:
+            erp_lines.append(f"  Error: {res.get('error','-')}")
+    erp_results = "\n".join(erp_lines) if erp_lines else "(tidak ada data ERP)"
 
     if llm_ready:
         prompt = FINAL_ANSWER_PROMPT.format(
             chat_history=chat_history_str,
             sop_summary=sop_summary,
-            sop_detail=sop_detail,
             erp_results=erp_results,
             question=question,
         )
-        final_answer = await llm_complete(prompt, max_tokens=800, temperature=0.35)
+        final_answer = await llm_complete(prompt, max_tokens=300, temperature=0.2)
     else:
         # ----- FALLBACK (rule-based): gaya chat natural, bukan emoji panjang -----
         if chat_history is None or len(chat_history) == 0:

@@ -39,12 +39,16 @@ from app.database import (
     c_insert, c_list, c_get, c_count,
     o_create, o_get, o_list, o_set_status, o_count,
     report_sales, report_low_stock,
+    chat_session_create, chat_session_list, chat_session_get,
+    chat_session_update_title, chat_session_delete, chat_session_bump_updated,
+    chat_message_add, chat_messages_list, chat_sessions_count, chat_messages_count,
 )
 from app.schemas import (
     IngestTextRequest, SearchRequest, ChunkInfoResponse, SearchResult,
     ProductIn, ProductOut, CustomerIn, CustomerOut, OrderIn,
     SalesReportRequest, LowStockReportRequest, GeneratedReport,
     AgenticResponse,
+    ChatRequest, ChatResponse, ChatSessionIn,
 )
 from app.generators import (
     generate_sales_report, generate_low_stock_report, answer_with_knowledge,
@@ -590,6 +594,166 @@ async def ai_agentic_qa(req: SearchRequest):
     llm_ready = state.get("ready", False)
     result = await agentic_sop_erp_qa(req.q, llm_ready=llm_ready, k_sop=req.k)
     return AgenticResponse(**result)
+
+
+# ======================================================================
+# 5. MODEL MANAGEMENT (auto-download untuk Docker friendly)
+# ======================================================================
+@app.get("/ai/models/catalog", tags=["AI — Model Management"])
+async def models_catalog():
+    """Lihat katalog model GGUF yang tersedia + status download lokal."""
+    from app import model_downloader as md
+    return {"catalog": md.list_catalog(), "active": settings.llm_model_gguf}
+
+
+@app.post("/ai/models/download", tags=["AI — Model Management"])
+async def models_download(req: ModelDownloadReq):
+    """Download model GGUF dari HuggingFace (atau custom URL)."""
+    from app import model_downloader as md
+    try:
+        r = await md.download_model(
+            req.model_id,
+            custom_url=req.custom_url,
+            custom_filename=req.custom_filename,
+        )
+        return {"status": "ok", **r}
+    except Exception as e:
+        raise HTTPException(500, f"Gagal download model: {e}")
+
+
+@app.get("/ai/models/active", tags=["AI — Model Management"])
+async def models_active():
+    """Cek model aktif & apakah sudah ter-download."""
+    from app import model_downloader as md
+    active = md.get_active_model()
+    return {
+        "active_filename": settings.llm_model_gguf,
+        "model": active,
+        "llama_ready": state.get("ready", False),
+    }
+
+
+@app.post("/ai/models/set-active", tags=["AI — Model Management"])
+async def models_set_active(req: ModelSetActiveReq):
+    """Set model aktif (perlu restart app agar llama-server pakai model baru)."""
+    from app import model_downloader as md
+    try:
+        return md.set_active_model(req.filename)
+    except FileNotFoundError as e:
+        raise HTTPException(404, str(e))
+
+
+# ======================================================================
+# 6. CHATGPT-STYLE CONVERSATION (Session + Messages + Memory)
+# ======================================================================
+@app.get("/chat/sessions", tags=["Chat — Sessions"])
+async def chat_list_sessions():
+    """List semua sesi chat (untuk sidebar gaya ChatGPT)."""
+    return {
+        "sessions": chat_session_list(),
+        "total_sessions": chat_sessions_count(),
+        "total_messages": chat_messages_count(),
+    }
+
+
+@app.post("/chat/sessions", tags=["Chat — Sessions"])
+async def chat_create_session(req: ChatSessionIn):
+    """Buat sesi chat baru."""
+    sid = chat_session_create(title=req.title, customer_id=req.customer_id)
+    session = chat_session_get(sid)
+    return {"status": "created", "session": session}
+
+
+@app.get("/chat/sessions/{sid}", tags=["Chat — Sessions"])
+async def chat_get_session(sid: str):
+    """Ambil detail sesi + semua pesan di dalamnya."""
+    session = chat_session_get(sid)
+    if not session:
+        raise HTTPException(404, "Session tidak ditemukan")
+    messages = chat_messages_list(sid)
+    return {"session": session, "messages": messages}
+
+
+@app.patch("/chat/sessions/{sid}", tags=["Chat — Sessions"])
+async def chat_rename_session(sid: str, req: ChatSessionIn):
+    """Rename judul sesi chat."""
+    if not chat_session_get(sid):
+        raise HTTPException(404, "Session tidak ditemukan")
+    chat_session_update_title(sid, req.title)
+    return {"status": "renamed", "session": chat_session_get(sid)}
+
+
+@app.delete("/chat/sessions/{sid}", tags=["Chat — Sessions"])
+async def chat_delete_session(sid: str):
+    """Hapus sesi chat beserta semua pesannya."""
+    if not chat_session_get(sid):
+        raise HTTPException(404, "Session tidak ditemukan")
+    chat_session_delete(sid)
+    return {"status": "deleted", "session_id": sid}
+
+
+@app.post("/chat/send", response_model=ChatResponse, tags=["Chat — Send"])
+async def chat_send(req: ChatRequest):
+    """
+    ⭐ ENDPOINT CHAT UTAMA (ChatGPT-style dengan memory).
+    - Jika session_id kosong → session baru dibuat otomatis.
+    - Riwayat N pesan terakhir dimasukkan ke context LLM (memory).
+    - use_agentic=True → Agentic SOP→ERP Router (4-step pipeline).
+    - use_agentic=False → Basic RAG (lebih cepat, tanpa ERP routing).
+    """
+    from datetime import datetime
+
+    sid = req.session_id
+    if not sid:
+        sid = chat_session_create(title=req.message[:60] or "Percakapan baru")
+
+    session = chat_session_get(sid)
+    if not session:
+        raise HTTPException(404, "Session tidak ditemukan")
+
+    chat_message_add(sid, "user", req.message)
+
+    history = chat_messages_list(sid, limit=req.memory_last_n * 2)
+    chat_history_for_llm = [
+        {"role": m["role"], "content": m["content"]}
+        for m in history if m["role"] in ("user", "assistant")
+    ]
+
+    llm_ready = state.get("ready", False)
+    agentic_data = None
+
+    if req.use_agentic:
+        result = await agentic_sop_erp_qa(
+            req.message,
+            llm_ready=llm_ready,
+            k_sop=req.k_sop,
+            chat_history=chat_history_for_llm,
+        )
+        reply = result.get("final_answer", "")
+        agentic_data = result
+    else:
+        search_rows = k_search(req.message, req.k_sop)
+        answer = await answer_with_knowledge(req.message, search_rows)
+        reply = answer.get("answer", "") if isinstance(answer, dict) else str(answer)
+
+    mid = chat_message_add(
+        sid, "assistant", reply,
+        tokens_used=0,
+        agentic_steps=agentic_data.get("steps") if agentic_data else None,
+    )
+    chat_session_bump_updated(sid)
+
+    return ChatResponse(
+        session_id=sid,
+        session_title=session["title"],
+        message_id=mid,
+        reply=reply,
+        role="assistant",
+        memory_used=len(chat_history_for_llm),
+        agentic=agentic_data,
+        tokens_used=0,
+        created_at=datetime.utcnow(),
+    )
 
 
 # ======================================================================

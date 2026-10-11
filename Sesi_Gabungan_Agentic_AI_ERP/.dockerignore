@@ -6,6 +6,7 @@ venv/
 .env
 .env.local
 *.duckdb
+*.duckdb.wal
 *.db
 *.log
 llama_server.log
@@ -18,6 +19,11 @@ tests/
 *.md
 run.bat
 Dockerfile
+docker-compose.yml
 .dockerignore
 .git/
 .gitignore
+bin/
+models/
+*.gguf
+*.part

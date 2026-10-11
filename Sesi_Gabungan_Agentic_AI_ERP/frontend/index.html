@@ -218,7 +218,12 @@
   <!-- TABS -->
   <ul class="nav nav-tabs mb-3" id="mainTab" role="tablist">
     <li class="nav-item" role="presentation">
-      <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tabAgentic" type="button">
+      <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tabChat" type="button">
+        <i class="bi bi-chat-left-text"></i> 💬 Chat (Memory)
+      </button>
+    </li>
+    <li class="nav-item" role="presentation">
+      <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tabAgentic" type="button">
         <i class="bi bi-robot"></i> ⭐ Agentic QA
       </button>
     </li>
@@ -242,9 +247,84 @@
   <div class="tab-content" id="tabContent">
 
     <!-- ============================================================ -->
+    <!-- TAB: CHATGPT-STYLE CONVERSATION (SESSION + MEMORY)            -->
+    <!-- ============================================================ -->
+    <div class="tab-pane fade show active" id="tabChat" role="tabpanel">
+      <div class="row g-0" style="min-height:600px">
+        <!-- SIDEBAR: SESSION LIST -->
+        <div class="col-md-3 col-lg-3" style="border-right:1px solid rgba(99,102,241,.2)">
+          <div class="p-3">
+            <button class="btn btn-primary w-100 mb-3" onclick="chatNewSession()">
+              <i class="bi bi-plus-lg"></i> Chat Baru
+            </button>
+            <div class="d-flex justify-content-between align-items-center mb-2">
+              <small class="text-secondary text-uppercase" style="font-size:10px;letter-spacing:.5px">Riwayat Sesi</small>
+              <small class="badge-sop badge" id="chatSessionCount">0</small>
+            </div>
+            <div id="chatSessionList" style="max-height:520px;overflow-y:auto">
+              <div class="text-secondary small text-center py-4">(belum ada sesi)</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- MAIN: CHAT AREA -->
+        <div class="col-md-9 col-lg-9">
+          <div class="d-flex flex-column" style="height:600px">
+            <!-- HEADER -->
+            <div class="px-4 py-3 border-bottom" style="border-color:rgba(99,102,241,.2) !important">
+              <div class="d-flex justify-content-between align-items-center">
+                <div>
+                  <h5 class="mb-0 gradient-text" id="chatTitle">Pilih sesi atau mulai chat baru</h5>
+                  <small class="text-secondary" id="chatSubtitle">AI akan mengingat riwayat percakapan dalam sesi ini</small>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                  <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" id="chatAgenticToggle" checked>
+                    <label class="form-check-label small text-secondary" for="chatAgenticToggle">
+                      <span id="chatModeLabel">Agentic SOP→ERP</span>
+                    </label>
+                  </div>
+                  <button class="btn btn-sm btn-outline-light" id="chatRenameBtn" onclick="chatRenameSession()" style="display:none">
+                    <i class="bi bi-pencil"></i>
+                  </button>
+                  <button class="btn btn-sm btn-outline-danger" id="chatDeleteBtn" onclick="chatDeleteSession()" style="display:none">
+                    <i class="bi bi-trash"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- MESSAGES -->
+            <div id="chatMessages" class="flex-grow-1 overflow-y-auto px-4 py-3" style="background:rgba(15,23,42,.3)">
+              <div class="text-center text-secondary py-5" id="chatEmptyState">
+                <i class="bi bi-chat-dots" style="font-size:48px;opacity:.3"></i>
+                <p class="mt-2">Pilih sesi dari sidebar atau klik <b>Chat Baru</b> untuk memulai.</p>
+              </div>
+            </div>
+
+            <!-- INPUT -->
+            <div class="px-4 py-3 border-top" style="border-color:rgba(99,102,241,.2) !important">
+              <div class="input-group">
+                <textarea id="chatInput" rows="1" class="form-control" placeholder="Ketik pesan... (Enter untuk kirim, Shift+Enter untuk baris baru)"
+                  style="resize:none;max-height:120px"></textarea>
+                <button class="btn btn-primary" id="chatSendBtn" onclick="chatSend()">
+                  <i class="bi bi-send"></i>
+                </button>
+              </div>
+              <div class="d-flex justify-content-between mt-2">
+                <small class="text-secondary" id="chatStatus">Siap</small>
+                <small class="text-secondary">memory: <span id="chatMemoryN">6</span> pesan terakhir</small>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================================ -->
     <!-- TAB: AGENTIC QA (ENDPOINT UTAMA)                             -->
     <!-- ============================================================ -->
-    <div class="tab-pane fade show active" id="tabAgentic" role="tabpanel">
+    <div class="tab-pane fade" id="tabAgentic" role="tabpanel">
       <div class="row g-3">
         <div class="col-lg-5">
           <div class="card h-100">
@@ -765,6 +845,200 @@ function escapeHtml(str) {
   return String(str)
     .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
     .replace(/"/g,'&quot;').replace(/'/g,'&#039;');
+}
+
+// =========================================================
+// CHATGPT-STYLE CHAT (Session + Memory)
+// =========================================================
+let currentSessionId = null;
+
+document.addEventListener('DOMContentLoaded', () => {
+  $('chatAgenticToggle').addEventListener('change', e => {
+    $('chatModeLabel').textContent = e.target.checked ? 'Agentic SOP→ERP' : 'Basic RAG';
+  });
+
+  $('chatInput').addEventListener('keydown', e => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      chatSend();
+    }
+  });
+
+  $('chatInput').addEventListener('input', e => {
+    e.target.style.height = 'auto';
+    e.target.style.height = Math.min(e.target.scrollHeight, 120) + 'px';
+  });
+
+  chatLoadSessions();
+});
+
+async function chatLoadSessions() {
+  const res = await api('/chat/sessions');
+  if (!res.ok) return;
+  const sessions = res.data.sessions || [];
+  $('chatSessionCount').textContent = sessions.length;
+  if (sessions.length === 0) {
+    $('chatSessionList').innerHTML = '<div class="text-secondary small text-center py-4">(belum ada sesi)</div>';
+    return;
+  }
+  $('chatSessionList').innerHTML = sessions.map(s => {
+    const active = s.id === currentSessionId ? 'active' : '';
+    const lastMsg = s.last_message ? escapeHtml(s.last_message.slice(0, 50)) + (s.last_message.length > 50 ? '...' : '') : '(belum ada pesan)';
+    return `<div class="chat-session-item ${active}" data-id="${s.id}" onclick="chatOpenSession('${s.id}')"
+      style="padding:10px 12px;border-radius:10px;cursor:pointer;margin-bottom:6px;
+             background:${active ? 'rgba(99,102,241,.2)' : 'rgba(15,23,42,.4)'};
+             border:1px solid ${active ? 'rgba(99,102,241,.5)' : 'rgba(148,163,184,.1)'};
+             transition:all .15s">
+      <div class="d-flex justify-content-between align-items-start">
+        <div class="flex-grow-1" style="min-width:0">
+          <div class="fw-semibold small text-truncate">${escapeHtml(s.title)}</div>
+          <div class="text-secondary" style="font-size:11px">${lastMsg}</div>
+        </div>
+        <small class="text-secondary ms-2" style="font-size:10px;white-space:nowrap">${s.messages_count}💬</small>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function chatNewSession() {
+  currentSessionId = null;
+  $('chatMessages').innerHTML = '<div class="text-center text-secondary py-5"><i class="bi bi-chat-dots" style="font-size:48px;opacity:.3"></i><p class="mt-2">Kirim pesan pertama untuk membuat sesi baru.</p></div>';
+  $('chatTitle').textContent = 'Percakapan baru';
+  $('chatSubtitle').textContent = 'AI akan mengingat riwayat percakapan dalam sesi ini';
+  $('chatRenameBtn').style.display = 'none';
+  $('chatDeleteBtn').style.display = 'none';
+  $('chatInput').focus();
+}
+
+async function chatOpenSession(sid) {
+  currentSessionId = sid;
+  const res = await api('/chat/sessions/' + sid);
+  if (!res.ok) { alert('Gagal memuat sesi'); return; }
+  const session = res.data.session;
+  const messages = res.data.messages || [];
+  $('chatTitle').textContent = session.title;
+  $('chatSubtitle').textContent = session.messages_count + ' pesan · dibuat ' + String(session.created_at).slice(0, 16);
+  $('chatRenameBtn').style.display = '';
+  $('chatDeleteBtn').style.display = '';
+  chatRenderMessages(messages);
+  chatLoadSessions();
+}
+
+function chatRenderMessages(messages) {
+  if (!messages.length) {
+    $('chatMessages').innerHTML = '<div class="text-center text-secondary py-5"><i class="bi bi-chat-dots" style="font-size:48px;opacity:.3"></i><p class="mt-2">Belum ada pesan. Mulai percakapan!</p></div>';
+    return;
+  }
+  $('chatMessages').innerHTML = messages.map(m => chatMessageHTML(m)).join('');
+  chatScrollBottom();
+}
+
+function chatMessageHTML(m) {
+  const isUser = m.role === 'user';
+  const avatar = isUser ? '<i class="bi bi-person-circle"></i>' : '<i class="bi bi-robot"></i>';
+  const bg = isUser ? 'rgba(14,165,233,.12)' : 'rgba(99,102,241,.12)';
+  const border = isUser ? 'rgba(14,165,233,.3)' : 'rgba(99,102,241,.3)';
+  const align = isUser ? 'margin-left:auto' : 'margin-right:0';
+  const steps = m.agentic_steps && m.agentic_steps.length
+    ? `<details class="mt-2" style="font-size:12px"><summary class="text-secondary" style="cursor:pointer">🔍 Lihat langkah agentic (${m.agentic_steps.length})</summary>
+       <div class="json-pre mt-1" style="max-height:200px">${escapeHtml(JSON.stringify(m.agentic_steps, null, 2))}</div></details>`
+    : '';
+  return `<div style="max-width:80%;${align};margin-bottom:14px">
+    <div class="d-flex align-items-center gap-2 mb-1">
+      <span class="${isUser?'text-info':'text-primary'}">${avatar}</span>
+      <small class="text-secondary">${isUser?'You':'AI Assistant'} · ${String(m.created_at||'').slice(11,16)}</small>
+    </div>
+    <div style="background:${bg};border:1px solid ${border};border-radius:12px;padding:10px 14px;line-height:1.6;white-space:pre-wrap">${escapeHtml(m.content)}</div>
+    ${steps}
+  </div>`;
+}
+
+function chatScrollBottom() {
+  const el = $('chatMessages');
+  el.scrollTop = el.scrollHeight;
+}
+
+async function chatSend() {
+  const msg = $('chatInput').value.trim();
+  if (!msg) return;
+  $('chatInput').value = '';
+  $('chatInput').style.height = 'auto';
+
+  const useAgentic = $('chatAgenticToggle').checked;
+  $('chatStatus').innerHTML = '<span class="text-warning">⏳ AI sedang berpikir...</span>';
+  $('chatSendBtn').disabled = true;
+
+  const userMsg = { role: 'user', content: msg, created_at: new Date().toISOString() };
+  if ($('chatEmptyState') || $('chatMessages').querySelector('.text-center')) {
+    $('chatMessages').innerHTML = '';
+  }
+  $('chatMessages').insertAdjacentHTML('beforeend', chatMessageHTML(userMsg));
+  chatScrollBottom();
+
+  try {
+    const res = await api('/chat/send', {
+      method: 'POST',
+      body: JSON.stringify({
+        message: msg,
+        session_id: currentSessionId,
+        use_agentic: useAgentic,
+        k_sop: 4,
+        memory_last_n: 6,
+      }),
+    });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const d = res.data;
+    currentSessionId = d.session_id;
+    $('chatTitle').textContent = d.session_title;
+    $('chatRenameBtn').style.display = '';
+    $('chatDeleteBtn').style.display = '';
+
+    const aiMsg = {
+      role: 'assistant',
+      content: d.reply,
+      created_at: d.created_at,
+      agentic_steps: d.agentic ? d.agentic.steps : null,
+    };
+    $('chatMessages').insertAdjacentHTML('beforeend', chatMessageHTML(aiMsg));
+    chatScrollBottom();
+    $('chatStatus').innerHTML = '<span class="text-success">✅ Selesai · memory: ' + d.memory_used + ' pesan</span>';
+    chatLoadSessions();
+  } catch (e) {
+    $('chatMessages').insertAdjacentHTML('beforeend',
+      `<div style="max-width:80%;margin-bottom:14px"><div class="d-flex align-items-center gap-2 mb-1">
+        <span class="text-danger"><i class="bi bi-exclamation-triangle"></i></span>
+        <small class="text-secondary">Error</small></div>
+        <div style="background:rgba(220,38,38,.1);border:1px solid rgba(220,38,38,.3);border-radius:12px;padding:10px 14px;color:#fca5a5">${escapeHtml(e.message)}</div></div>`);
+    $('chatStatus').innerHTML = '<span class="text-danger">❌ Error</span>';
+  } finally {
+    $('chatSendBtn').disabled = false;
+  }
+}
+
+async function chatRenameSession() {
+  if (!currentSessionId) return;
+  const cur = $('chatTitle').textContent;
+  const title = prompt('Nama sesi baru:', cur);
+  if (!title || title === cur) return;
+  const res = await api('/chat/sessions/' + currentSessionId, {
+    method: 'PATCH',
+    body: JSON.stringify({ title }),
+  });
+  if (res.ok) {
+    $('chatTitle').textContent = title;
+    chatLoadSessions();
+  }
+}
+
+async function chatDeleteSession() {
+  if (!currentSessionId) return;
+  if (!confirm('Hapus sesi ini beserta semua pesannya?')) return;
+  const res = await api('/chat/sessions/' + currentSessionId, { method: 'DELETE' });
+  if (res.ok) {
+    currentSessionId = null;
+    chatNewSession();
+    chatLoadSessions();
+  }
 }
 </script>
 </body>
