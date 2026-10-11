@@ -24,6 +24,7 @@ from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
+from pydantic import BaseModel
 
 from app.config import settings
 from app.llm import lifespan_llm, state
@@ -50,9 +51,45 @@ from app.generators import (
     agentic_sop_erp_qa,
 )
 
+# === Inline schemas untuk Models API ===
+class ModelDownloadReq(BaseModel):
+    model_id: str
+    custom_url: Optional[str] = None
+    custom_filename: Optional[str] = None
+
+class ModelSetActiveReq(BaseModel):
+    filename: str
+
+
+async def _auto_download_default_model():
+    """Download model DEFAULT otomatis jika belum ada (untuk container Docker)."""
+    from app import model_downloader as md
+    try:
+        active = md.get_active_model()
+        if active and active.get("downloaded"):
+            print(f"[Model] Model AKTIF sudah ada: {active['filename']} ({active.get('local_size_mb',0)} MB). Skip auto-download.")
+            return
+        target = settings.llm_model_gguf
+        print(f"[Model] Auto-download model '{target}' (model_download_auto=ON) ...")
+        model_id = None
+        for m in md.DEFAULT_MODEL_CATALOG:
+            if m["filename"] == target:
+                model_id = m["id"]; break
+        if not model_id:
+            model_id = "qwen2.5-0.5b-instruct-q4_k_m"
+        r = await md.download_model(model_id)
+        print(f"[Model] Auto-download SELESAI: {r.get('filename')} ({r.get('size_mb',0)} MB).")
+    except Exception as e:
+        print(f"[Model] WARNING: Auto-download gagal. Bisa pakai API manual: GET /ai/models/catalog, POST /ai/models/download")
+        print(f"[Model] Error detail: {e}")
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # 1. Auto-download model default jika di-enable (Docker friendly)
+    if settings.model_download_auto:
+        await _auto_download_default_model()
+    # 2. Init DuckDB + VSS + seed data
     init_db()
     print(f"[AgenticAI-ERP v2] DuckDB siap: {settings.duckdb_path}")
     print(f"[AgenticAI-ERP v2]   SOP KB chunks      : {sop_count()}")
@@ -60,6 +97,7 @@ async def lifespan(app: FastAPI):
     print(f"[AgenticAI-ERP v2]   Products           : {p_count()}")
     print(f"[AgenticAI-ERP v2]   Customers          : {c_count()}")
     print(f"[AgenticAI-ERP v2]   Orders             : {o_count()}")
+    # 3. LLM llama-server
     async with lifespan_llm(app):
         yield
     close_db()

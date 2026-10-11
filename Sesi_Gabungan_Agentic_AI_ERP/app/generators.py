@@ -13,9 +13,10 @@ ROUTER_PROMPT = """Kamu adalah ROUTER AGENT di sistem Agentic AI ERP NocStore.
 
 TUGAS UTAMA:
 1. Baca SOP (Standar Operasional Prosedur) yang relevan dengan pertanyaan user DI BAWAH INI.
-2. Berdasarkan SOP tersebut, TENTUKAN ACTION ERP apa saja yang HARUS dijalankan agar bisa memberikan jawaban lengkap ke user.
-3. Setiap action punya parameter (jika perlu).
-4. MAKSIMAL 3 actions. Prioritaskan action yang PALING relevan menurut SOP.
+2. Jika ada RIWAYAT PERCAKAPAN, GUNAKAN UNTUK KONTEKS (misal: user sebelumnya tanya NocBook, sekarang tanya "berapa harganya?" maka ambil konteks NocBook).
+3. Berdasarkan SOP + riwayat tersebut, TENTUKAN ACTION ERP apa saja yang HARUS dijalankan agar bisa memberikan jawaban lengkap ke user.
+4. Setiap action punya parameter (jika perlu).
+5. MAKSIMAL 3 actions. Prioritaskan action yang PALING relevan menurut SOP.
 
 === DAFTAR ACTION ERP YANG TERSEDIA ===
 - lookup_product      : Cari data produk (nama, harga, stok) dari tabel products ERP.
@@ -38,7 +39,10 @@ TUGAS UTAMA:
 - no_erp_needed       : Jika jawaban CUKUP dari SOP saja, TIDAK perlu ambil data ERP.
                        PARAM (param): null / kosongkan.
 
-=== PERTANYAAN USER ===
+=== RIWAYAT PERCAKAPAN TERAKHIR (konteks, boleh diabaikan jika tidak relevan) ===
+{chat_history}
+
+=== PERTANYAAN USER SAAT INI ===
 {question}
 
 === SOP TERKAIT YANG DITEMUKAN ===
@@ -69,27 +73,32 @@ SEKARANG, KELUARKAN HANYA JSON:
 FINAL_ANSWER_PROMPT = """Kamu adalah Customer Service Agent PROFESIONAL di NocStore (toko online perangkat keras komputer).
 
 Berikut adalah data yang kamu punya untuk menjawab user:
-A) SOP YANG RELEVAN (ringkasan):
+A) RIWAYAT PERCAKAPAN SEBELUMNYA (untuk konteks referensi pronoun / follow-up):
+{chat_history}
+
+B) SOP YANG RELEVAN (ringkasan):
 {sop_summary}
 
-B) RINCIAN SOP ASLI (untuk pastikan kamu tidak salah):
+C) RINCIAN SOP ASLI (untuk pastikan kamu tidak salah):
 {sop_detail}
 
-C) DATA ERP YANG TELAH DIAMBIL BERDASARKAN PETUNJUK SOP:
+D) DATA ERP YANG TELAH DIAMBIL BERDASARKAN PETUNJUK SOP:
 {erp_results}
 
-D) PERTANYAAN USER:
+E) PERTANYAAN USER SAAT INI:
 {question}
 
-=== INSTRUKSI MENJAWAB ===
-1. Jawab dalam BAHASA INDONESIA yang ramah dan jelas.
-2. AWAL jawaban: sebutkan poin SOP yang relevan (misal: "Sesuai SOP klaim garansi NocStore: ...").
-3. TENGAH jawaban: sisipkan DATA ERP yang relevan (harga, stok, nama produk, dll) JIKA ADA.
-4. AKHIR jawaban: berikan ACTION ITEM / NEXT STEP yang jelas untuk user.
-5. JANGAN mengarang data. Jika data ERP tidak lengkap, katakan "Informasi terkait [X] saat ini belum tersedia di sistem, silakan hubungi CS WA +62-811-0000-123".
-6. JANGAN menyebut "menurut router" atau istilah teknis internal. Jawab seolah kamu CS sungguhan.
+=== INSTRUKSI MENJAWAB (CHATBOT-STYLE NATURAL) ===
+1. Jawab dalam BAHASA INDONESIA yang RAMAH, SANTUN, dan ALAMI (seperti chat biasa, bukan laporan formal).
+2. AWAL jawaban: jika percakapan baru, sapaan singkat ("Tentu saja!", "Baik, saya bantu jelaskan.", "Oh begitu kak, begini..."); jika follow-up, langsung jawab tanpa sapaan berulang.
+3. Sebutkan SOP HANYA JIKA RELEVAN (JANGAN selalu pakai kata "Sesuai SOP" secara kaku; bisa juga "Aturannya di NocStore...", "Kebijakan kami untuk...").
+4. SISPAN DATA ERP yang relevan (harga, stok, nama produk) dengan format NATURAL (JANGAN list berbentuk tabel JSON), misal: "Saat ini NocBook Pro 14 masih ada 25 unit stok, harganya Rp12.500.000".
+5. Jika user bertanya follow-up (misal "berapa harganya?"), GUNAKAN RIWAYAT PERCAKAPAN untuk mengetahui produk yang dimaksud, JANGAN balik bertanya lagi.
+6. AKHIR jawaban: next step yang membantu, misal "Mau saya bantu cek stok cabang terdekat?" atau "Kalau mau order bisa langsung via CS WA yah +62-811-0000-123". JANGAN selalu tulis nomor yang sama; sesuaikan konteks (jika sudah jelas bukan masalah order, tawarkan bantuan lain).
+7. JANGAN mengarang data. Jika data tidak ada, katakan secara sopan: "Saya belum dapat info detailnya untuk saat ini, kak. Bisa dihubungi CS WA biar tim data bantu cek ya?"
+8. Panjang jawaban ideal 2-6 kalimat. Jika perlu rinci, boleh sampai 8 kalimat, tapi JANGAN terlalu panjang lebar.
 
-Jawaban (maksimal 8 kalimat, padat & jelas):
+Jawabanmu (format chat biasa, tanpa point atau bullet jika tidak perlu):
 """
 
 SALES_PROMPT = """Kamu adalah ANALIS BISNIS senior di toko online retail.
@@ -299,17 +308,33 @@ def _fallback_router_plan(question: str, sop_rows: list):
     return {"actions": actions[:3], "sop_summary": sop_summary}
 
 
-async def _plan_actions(question: str, sop_rows: list, llm_ready: bool):
-    """Pilih action via LLM jika siap, fallback ke rule-based."""
+async def _plan_actions(
+    question: str,
+    sop_rows: list,
+    llm_ready: bool,
+    chat_history_str: str | None = None,
+    sop_context_override: str | None = None,
+):
+    """Pilih action via LLM jika siap, fallback ke rule-based. chat_history + sop_context optional."""
     if not llm_ready:
         return _fallback_router_plan(question, sop_rows)
 
-    context_lines = []
-    for i, r in enumerate(sop_rows[:4], 1):
-        context_lines.append(f"[SOP {i} - {r[1]}] {r[2]}")
-    sop_context = "\n\n".join(context_lines) if context_lines else "(tidak ada SOP yang match)"
+    if sop_context_override:
+        sop_context = sop_context_override
+    else:
+        context_lines = []
+        for i, r in enumerate(sop_rows[:4], 1):
+            context_lines.append(f"[SOP {i} - {r[1]}] {r[2]}")
+        sop_context = "\n\n".join(context_lines) if context_lines else "(tidak ada SOP yang match)"
 
-    prompt = ROUTER_PROMPT.format(question=question, sop_context=sop_context)
+    if chat_history_str is None:
+        chat_history_str = "(belum ada riwayat percakapan)"
+
+    prompt = ROUTER_PROMPT.format(
+        question=question,
+        sop_context=sop_context,
+        chat_history=chat_history_str,
+    )
     raw = await llm_complete(prompt, max_tokens=1000, temperature=0.2,
                              stop=["\n```", "```"])
 
@@ -332,25 +357,48 @@ async def _plan_actions(question: str, sop_rows: list, llm_ready: bool):
 
 
 # ======================================================================
-# AGENTIC MAIN PIPELINE
+# AGENTIC MAIN PIPELINE (Chatbot-aware: menerima chat_history_context)
 # ======================================================================
-async def agentic_sop_erp_qa(question: str, llm_ready: bool, k_sop: int = 4):
+def _format_chat_history(history_messages: list | None) -> str:
+    """Format list pesan (role+content) jadi teks ringkas untuk prompt context."""
+    if not history_messages:
+        return "(belum ada riwayat percakapan - ini pesan pertama user)"
+    out = []
+    for m in history_messages[-8:]:
+        role = m.get("role", "user")
+        content = str(m.get("content", ""))
+        tag = "User" if role == "user" else ("CS" if role == "assistant" else "Sys")
+        out.append(f"[{tag}]: {content[:500]}")
+    return "\n".join(out) or "(riwayat kosong)"
+
+
+async def agentic_sop_erp_qa(
+    question: str,
+    llm_ready: bool,
+    k_sop: int = 4,
+    chat_history: list | None = None,
+):
     """
-    Alur Agentic:
+    Alur Agentic (chatbot-style dengan memory):
       STEP 1. Cari SOP TERLEBIH DAHULU (pahami prosedur).
-      STEP 2. SOP -> router (LLM / rule) -> rencana action ERP.
+      STEP 2. SOP + chat_history -> router (LLM / rule) -> rencana action ERP.
       STEP 3. Eksekusi semua action ERP, kumpulkan hasil.
-      STEP 4. Gabung SOP + hasil ERP -> LLM jawaban final.
+      STEP 4. Gabung SOP + chat_history + hasil ERP -> LLM jawaban final natural.
     """
+    chat_history_str = _format_chat_history(chat_history)
+
     # --- STEP 1 ---
     sop_rows = sop_search(question, k=k_sop)
     sop_context_dict = [
         {"id": r[0], "source": r[1], "content": r[2], "score": float(r[3])}
         for r in sop_rows
     ]
+    sop_context_for_prompt = "\n---\n".join(
+        [f"[{r[1]}] {r[2][:900]}" for r in sop_rows]
+    ) or "(tidak ada SOP yang match)"
 
     # --- STEP 2 ---
-    plan = await _plan_actions(question, sop_rows, llm_ready)
+    plan = await _plan_actions(question, sop_rows, llm_ready, chat_history_str, sop_context_for_prompt)
 
     # --- STEP 3 ---
     steps = []
@@ -379,6 +427,7 @@ async def agentic_sop_erp_qa(question: str, llm_ready: bool, k_sop: int = 4):
 
     if llm_ready:
         prompt = FINAL_ANSWER_PROMPT.format(
+            chat_history=chat_history_str,
             sop_summary=sop_summary,
             sop_detail=sop_detail,
             erp_results=erp_results,
@@ -386,42 +435,158 @@ async def agentic_sop_erp_qa(question: str, llm_ready: bool, k_sop: int = 4):
         )
         final_answer = await llm_complete(prompt, max_tokens=800, temperature=0.35)
     else:
-        parts = [f"📋 **SOP Terkait**: {sop_summary or sop_detail[:300]}"]
+        # ----- FALLBACK (rule-based): gaya chat natural, bukan emoji panjang -----
+        if chat_history is None or len(chat_history) == 0:
+            opening = "Tentu saja, saya bantu ya kak.\n\n"
+        else:
+            opening = ""
+        mid = []
+        if sop_summary:
+            mid.append(f"Aturan di NocStore untuk hal ini: {sop_summary}")
+        else:
+            mid.append("Berikut info yang saya dapat dari sistem:")
         for s in steps:
             act, res = s["action"], s["result"]
             if res.get("status") == "ok":
                 if act == "lookup_product" and res.get("products"):
                     ps = res["products"][:3]
-                    parts.append("\n🛒 **Data Produk** (dari ERP):")
-                    for p in ps:
-                        parts.append(f"  • {p['name']} — {p['price_idr']} (stok: {p['stock']})")
+                    if len(ps) == 1:
+                        p = ps[0]
+                        mid.append(f"Untuk {p['name']}, saat ini stoknya {p['stock']} unit dengan harga {p['price_idr']}.")
+                    else:
+                        names = ", ".join(f"{p['name']}({p['stock']})@{p['price_idr']}" for p in ps)
+                        mid.append(f"Beberapa produk yang relevan: {names}.")
                 elif act == "check_low_stock":
-                    parts.append(f"\n⚠️ **Stok Kritis** (<= {res.get('threshold')}):")
-                    for p in res.get("products", [])[:3]:
-                        parts.append(f"  • {p['name']} — sisa {p['stock']} unit @Rp{p['price']:,.0f}")
+                    prods = res.get("products", [])
+                    if not prods:
+                        mid.append(f"Alhamdulillah stok semua produk masih aman (di atas {res.get('threshold')}).")
+                    else:
+                        names = ", ".join(f"{p['name']} sisa {p['stock']}" for p in prods[:3])
+                        mid.append(f"Untuk stok di bawah {res.get('threshold')}, ada: {names}. Segera reorder ya kak.")
                 elif act == "check_sales_report":
-                    parts.append(f"\n📊 **Penjualan {res.get('period_days')} hari** (total {res.get('total_revenue_idr')}):")
-                    for bp in res.get("by_product", [])[:3]:
-                        parts.append(f"  • {bp['product']}: {bp['qty']} unit (Rp{bp['revenue']:,.0f})")
+                    tot = res.get("total_revenue_idr", "Rp0")
+                    days = res.get("period_days", 7)
+                    mid.append(f"Penjualan {days} hari terakhir total {tot}.")
+                    bp = res.get("by_product", [])
+                    if bp:
+                        top3 = ", ".join(f"{b['product']}({b['qty']})" for b in bp[:3])
+                        mid.append(f"Produk terlaris: {top3}.")
                 elif act == "lookup_erp_knowledge" and res.get("erp_docs"):
-                    parts.append(f"\n📘 **Pengetahuan ERP**:")
-                    for d in res["erp_docs"][:2]:
-                        parts.append(f"  • [{d['source']}] {d['content_snippet'][:200]}")
-                elif act == "lookup_order":
-                    if res.get("status_order"):
-                        parts.append(f"\n🧾 **Order {res['order_id']}**: {res['status_order']} — {res['total_idr']}")
-                elif act == "no_erp_needed":
-                    parts.append("")
-        parts.append("\n💡 **Langkah Selanjutnya**: Hubungi CS WA +62-811-0000-123 untuk bantuan lebih lanjut.")
-        final_answer = "\n".join(parts)
+                    snippets = [d["content_snippet"][:150] for d in res["erp_docs"][:2]]
+                    mid.append("Info tambahan: " + " | ".join(snippets))
+                elif act == "lookup_order" and res.get("status_order"):
+                    mid.append(f"Order {res['order_id']} statusnya {res['status_order']} dengan total {res.get('total_idr','-')}.")
+        if len(mid) <= 1:
+            mid.append("Kalau kurang jelas, saya bantu cek data lebih detail lagi ya.")
+        mid.append("Semoga membantu kak 🙏")
+        final_answer = opening + "\n".join(mid)
 
     return {
         "question": question,
         "sop_context": sop_context_dict,
         "plan": plan,
         "steps": steps,
-        "final_answer": final_answer,
+        "final_answer": final_answer.strip(),
         "llm_used": llm_ready,
+    }
+
+
+# ======================================================================
+# CHATBOT WRAPPER HIGH-LEVEL: Session + Message + Agentic all-in-one
+# ======================================================================
+async def chatbot_send_message(
+    message: str,
+    llm_ready: bool,
+    session_id: str | None = None,
+    customer_id: str | None = None,
+    memory_last_n: int = 6,
+    k_sop: int = 4,
+    use_agentic: bool = True,
+) -> dict:
+    """
+    High-level: buat/update session, simpan pesan user, jalankan agentic,
+    simpan pesan assistant, RETURN ChatResponse-ready dict.
+    """
+    from app.database import (
+        chat_session_create, chat_session_get, chat_session_update_title,
+        chat_message_add, chat_messages_list,
+    )
+
+    # 1. Session
+    if session_id:
+        sess = chat_session_get(session_id)
+        if not sess:
+            session_id = None
+    if not session_id:
+        # Auto-title: 40 karakter pertama pesan user
+        title = message.strip()[:40] or "Percakapan baru"
+        if len(message) > 40:
+            title += "..."
+        session_id = chat_session_create(title, customer_id=customer_id)
+    sess = chat_session_get(session_id)
+
+    # 2. Riwayat memory (N pesan terakhir, sebelum pesan ini)
+    history = chat_messages_list(session_id, limit=memory_last_n * 2)
+    # update title jika masih "Percakapan baru" dan ini pesan pertama
+    if (sess and (sess["messages_count"] == 0 or sess["title"] == "Percakapan baru") and len(message) > 3):
+        new_title = message.strip()[:40]
+        if len(message) > 40:
+            new_title += "..."
+        chat_session_update_title(session_id, new_title)
+
+    # 3. Simpan pesan USER
+    chat_message_add(session_id, "user", message, tokens_used=0)
+
+    # 4. Jalankan agentic / basic RAG
+    tokens_used = 0
+    if use_agentic:
+        agentic_res = await agentic_sop_erp_qa(
+            question=message,
+            llm_ready=llm_ready,
+            k_sop=k_sop,
+            chat_history=history,
+        )
+        reply_text = agentic_res["final_answer"]
+    else:
+        # Basic: gabung SOP + ERP Docs top-k
+        from app.database import erpdoc_search, sop_search
+        sops = sop_search(message, k=2)
+        erps = erpdoc_search(message, k=2)
+        ctx_parts = []
+        for r in sops:
+            ctx_parts.append(f"[SOP {r[1]}] {r[2][:400]}")
+        for r in erps:
+            ctx_parts.append(f"[ERP {r[1]}] {r[2][:400]}")
+        ctx = "\n\n".join(ctx_parts) or "(tidak ada dokumen yang relevan)"
+        if llm_ready:
+            prompt = f"Kamu CS NocStore. Jawab pertanyaan user berdasarkan konteks di bawah, bahasa Indonesia natural.\n\nKONTEKS:\n{ctx}\n\nPERTANYAAN: {message}\n\nJAWABAN SINGKAT (2-5 kalimat):"
+            reply_text = await llm_complete(prompt, max_tokens=600, temperature=0.35)
+            tokens_used = int(len(prompt + reply_text) / 4)
+        else:
+            reply_text = "Saya bantu rangkum dari dokumen yang ada ya kak.\n\n" + ctx[:800]
+        agentic_res = None
+
+    # 5. Simpan pesan ASSISTANT
+    steps_to_save = agentic_res["steps"] if agentic_res else None
+    msg_id = chat_message_add(
+        session_id, "assistant", reply_text,
+        tokens_used=tokens_used or int(len(reply_text) / 4),
+        agentic_steps=steps_to_save,
+    )
+
+    # 6. Reload session info untuk response
+    sess = chat_session_get(session_id)
+    sess2 = chat_session_get(session_id)
+    return {
+        "session_id": session_id,
+        "session_title": (sess or sess2)["title"] if (sess or sess2) else "Percakapan",
+        "message_id": msg_id,
+        "reply": reply_text,
+        "role": "assistant",
+        "memory_used": len(history),
+        "agentic": agentic_res,
+        "tokens_used": tokens_used or int(len(reply_text) / 4),
+        "created_at": __import__("datetime").datetime.now(),
     }
 
 
@@ -475,7 +640,7 @@ async def answer_with_knowledge(question: str, search_results: list):
     context = "\n\n".join(context_lines) if context_lines else "(tidak ada konteks ditemukan)"
     answer = await llm_complete(
         KNOWLEDGE_QA_PROMPT.format(context=context, question=question),
-        max_tokens=600, temperature=0.3,
+        max_tokens=900, temperature=0.5,
     )
     return {
         "question": question,

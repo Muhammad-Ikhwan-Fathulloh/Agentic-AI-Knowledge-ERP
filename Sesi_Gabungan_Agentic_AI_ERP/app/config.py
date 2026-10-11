@@ -26,6 +26,14 @@ class Settings(BaseSettings):
     default_report_days: int = 7
     low_stock_threshold: int = 10
 
+    # === MODEL DOWNLOAD ===
+    model_download_auto: bool = True
+    """Jika True, otomatis download model DEFAULT saat startup (jika belum ada)."""
+    model_download_timeout_sec: int = 1800
+    """Timeout download model (default 30 menit)."""
+    hf_mirror: str = ""
+    """Opsional: mirror HuggingFace untuk wilayah APAC, misal 'https://hf-mirror.com'. Kosong = default."""
+
     class Config:
         env_file = ".env"
 

@@ -1,5 +1,6 @@
 from pydantic import BaseModel, Field
 from typing import Optional, List, Any
+from datetime import datetime
 
 
 # ====================================================================
@@ -86,7 +87,7 @@ class GeneratedReport(BaseModel):
 
 
 # ====================================================================
-# AGENTIC SOP -> ERP ROUTING (BARU)
+# AGENTIC SOP -> ERP ROUTING
 # ====================================================================
 VALID_ACTIONS = {
     "lookup_product", "check_low_stock", "check_sales_report",
@@ -96,36 +97,17 @@ VALID_ACTIONS = {
 
 
 class AgentAction(BaseModel):
-    """Satu action ERP yang diputuskan oleh LLM setelah membaca SOP."""
-    action: str = Field(
-        description=(
-            "Pilih salah satu: lookup_product (cari produk by nama/stok/harga), "
-            "check_low_stock (cek barang stok dibawah threshold), "
-            "check_sales_report (laporan penjualan N hari), "
-            "lookup_customer (cari customer by nama/email), "
-            "lookup_order (cari detail order by id), "
-            "lookup_erp_knowledge (cari di KB ERP spesifikasi produk/supplier), "
-            "no_erp_needed (jawaban cukup dari SOP saja)."
-        )
-    )
-    param: Optional[str] = Field(
-        default=None,
-        description="Parameter untuk action: nama produk untuk lookup_product, order_id untuk lookup_order, dsb.",
-    )
-    reason: Optional[str] = Field(
-        default=None,
-        description="Alasan mengapa action ini dipilih (dari SOP yang dibaca).",
-    )
+    action: str
+    param: Optional[str] = None
+    reason: Optional[str] = None
 
 
 class AgentPlan(BaseModel):
-    """Hasil parsing LLM: daftar action ERP yang harus dijalankan."""
     actions: List[AgentAction]
-    sop_summary: str = Field(description="Ringkasan SOP yang relevan untuk jawaban user.")
+    sop_summary: str
 
 
 class AgentStep(BaseModel):
-    """Satu langkah di rantai agentic: action + result."""
     action: str
     param: Optional[str] = None
     reason: Optional[str] = None
@@ -133,10 +115,75 @@ class AgentStep(BaseModel):
 
 
 class AgenticResponse(BaseModel):
-    """Response final endpoint /ai/agentic/qa."""
     question: str
     sop_context: List[dict]
     plan: Any
     steps: List[AgentStep]
     final_answer: str
     llm_used: bool
+
+
+# ====================================================================
+# CHATBOT / CONVERSATION MEMORY (CHATGPT-STYLE)
+# ====================================================================
+class ChatSessionIn(BaseModel):
+    title: Optional[str] = "Percakapan baru"
+    customer_id: Optional[str] = None
+
+
+class ChatSession(BaseModel):
+    id: str
+    title: str
+    customer_id: Optional[str] = None
+    created_at: datetime
+    updated_at: datetime
+    messages_count: int = 0
+    last_message: Optional[str] = None
+
+
+class ChatMessage(BaseModel):
+    id: str
+    session_id: str
+    role: str = Field(description="user | assistant | system")
+    content: str
+    tokens_used: Optional[int] = 0
+    agentic_steps: Optional[Any] = None
+    created_at: datetime
+
+
+class ChatRequest(BaseModel):
+    """Request send message ke chatbot."""
+    message: str
+    session_id: Optional[str] = Field(
+        default=None,
+        description="ID session yang sudah ada. Jika kosong → session baru dibuat otomatis."
+    )
+    k_sop: int = 4
+    memory_last_n: int = Field(
+        default=6,
+        description="Berapa pesan terakhir yang dimasukkan ke context LLM (memory)."
+    )
+    use_agentic: bool = Field(
+        default=True,
+        description="True = agentic SOP→ERP Router; False = basic RAG (lebih cepat tapi tanpa ERP)."
+    )
+    stream: bool = False  # reserved SSE (belum dipakai v3)
+
+
+class ChatResponse(BaseModel):
+    """Response chatbot dengan session + pesan balasan + langkah agentic."""
+    session_id: str
+    session_title: str
+    message_id: str
+    reply: str
+    role: str = "assistant"
+    memory_used: int = 0
+    agentic: Optional[AgenticResponse] = None
+    tokens_used: int = 0
+    created_at: datetime
+
+
+class ChatHistoryResponse(BaseModel):
+    """Daftar pesan dalam satu session (untuk ditampilkan ulang ke frontend)."""
+    session: ChatSession
+    messages: List[ChatMessage]

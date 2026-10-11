@@ -70,8 +70,22 @@ def init_db():
 
     con.execute("""
     CREATE TABLE IF NOT EXISTS customers (
-        id VARCHAR PRIMARY KEY, name VARCHAR NOT NULL,
+        id VARCHAR PRIMARY KEY, 
+        name VARCHAR NOT NULL,
         email VARCHAR, phone VARCHAR,
+        created_at TIMESTAMP DEFAULT current_timestamp
+    );
+    """)
+
+    con.execute(f"""
+    CREATE TABLE IF NOT EXISTS chat_customers (
+        id VARCHAR PRIMARY KEY, 
+        customer_id VARCHAR REFERENCES customers(id),
+        chat_history TEXT,
+        embedding FLOAT[{settings.embed_dim}],
+        last_chat_time TIMESTAMP DEFAULT current_timestamp,
+        last_chat_message VARCHAR,
+        last_chat_response VARCHAR,
         created_at TIMESTAMP DEFAULT current_timestamp
     );
     """)
@@ -90,6 +104,38 @@ def init_db():
         qty INTEGER, price DOUBLE, subtotal DOUBLE
     );
     """)
+
+    # =====================================================================
+    # CHAT CONVERSATION MEMORY (ChatGPT-style session + messages)
+    #   -> Lebih scalable daripada chat_customers kolom tunggal.
+    #      chat_customers (tabel user) DIpertahankan untuk backward compat.
+    # =====================================================================
+    con.execute("""
+    CREATE TABLE IF NOT EXISTS chat_sessions (
+        id VARCHAR PRIMARY KEY,
+        title VARCHAR NOT NULL,
+        customer_id VARCHAR,
+        created_at TIMESTAMP DEFAULT current_timestamp,
+        updated_at TIMESTAMP DEFAULT current_timestamp
+    );
+    """)
+
+    con.execute("""
+    CREATE TABLE IF NOT EXISTS chat_messages (
+        id VARCHAR PRIMARY KEY,
+        session_id VARCHAR NOT NULL REFERENCES chat_sessions(id) ON DELETE CASCADE,
+        role VARCHAR NOT NULL CHECK (role IN ('user', 'assistant', 'system')),
+        content TEXT NOT NULL,
+        tokens_used INTEGER DEFAULT 0,
+        agentic_steps TEXT,
+        created_at TIMESTAMP DEFAULT current_timestamp
+    );
+    """)
+
+    try:
+        con.execute("CREATE INDEX IF NOT EXISTS idx_msg_session ON chat_messages(session_id);")
+    except Exception:
+        pass
 
     try:
         con.execute("CREATE INDEX IF NOT EXISTS idx_sop_emb ON sop_documents USING HNSW (embedding);")
@@ -676,3 +722,193 @@ def report_low_stock(threshold=10):
             for r in rows
         ],
     }
+
+
+# ========================================================================
+# CHAT: Chat Sessions (ChatGPT-style sidebar list percakapan)
+# ========================================================================
+def chat_session_create(title: str = "Percakapan baru", customer_id=None) -> str:
+    con = get_con()
+    sid = str(uuid.uuid4())
+    if not title or len(title.strip()) == 0:
+        title = "Percakapan baru"
+    con.execute(
+        "INSERT INTO chat_sessions (id, title, customer_id, created_at, updated_at) "
+        "VALUES (?, ?, ?, current_timestamp, current_timestamp)",
+        [sid, title[:120], customer_id],
+    )
+    return sid
+
+
+def chat_session_update_title(sid: str, title: str):
+    con = get_con()
+    con.execute(
+        "UPDATE chat_sessions SET title = ?, updated_at = current_timestamp WHERE id = ?",
+        [title[:120] if title else "Percakapan baru", sid],
+    )
+
+
+def chat_session_bump_updated(sid: str):
+    con = get_con()
+    con.execute(
+        "UPDATE chat_sessions SET updated_at = current_timestamp WHERE id = ?", [sid]
+    )
+
+
+def chat_session_list(customer_id=None, limit=100) -> list:
+    con = get_con()
+    if customer_id:
+        rows = con.execute("""
+            SELECT s.id, s.title, s.customer_id, s.created_at, s.updated_at,
+                   COALESCE(COUNT(m.id),0) msg_count,
+                   (SELECT content FROM chat_messages
+                     WHERE session_id=s.id AND role='assistant'
+                     ORDER BY created_at DESC LIMIT 1) last_msg
+            FROM chat_sessions s
+            LEFT JOIN chat_messages m ON m.session_id = s.id
+            WHERE s.customer_id = ?
+            GROUP BY s.id
+            ORDER BY s.updated_at DESC
+            LIMIT ?
+        """, [customer_id, limit]).fetchall()
+    else:
+        rows = con.execute("""
+            SELECT s.id, s.title, s.customer_id, s.created_at, s.updated_at,
+                   COALESCE(COUNT(m.id),0) msg_count,
+                   (SELECT m2.content FROM chat_messages m2
+                     WHERE m2.session_id=s.id AND m2.role='assistant'
+                     ORDER BY m2.created_at DESC LIMIT 1) last_msg
+            FROM chat_sessions s
+            LEFT JOIN chat_messages m ON m.session_id = s.id
+            GROUP BY s.id
+            ORDER BY s.updated_at DESC
+            LIMIT ?
+        """, [limit]).fetchall()
+    return [
+        {
+            "id": r[0], "title": r[1], "customer_id": r[2],
+            "created_at": r[3], "updated_at": r[4],
+            "messages_count": int(r[5] or 0),
+            "last_message": r[6],
+        }
+        for r in rows
+    ]
+
+
+def chat_session_get(sid: str):
+    con = get_con()
+    r = con.execute("""
+        SELECT s.id, s.title, s.customer_id, s.created_at, s.updated_at,
+               (SELECT COUNT(*) FROM chat_messages WHERE session_id=s.id),
+               (SELECT content FROM chat_messages
+                 WHERE session_id=s.id AND role='assistant'
+                 ORDER BY created_at DESC LIMIT 1)
+        FROM chat_sessions s WHERE s.id = ?
+    """, [sid]).fetchone()
+    if not r:
+        return None
+    return {
+        "id": r[0], "title": r[1], "customer_id": r[2],
+        "created_at": r[3], "updated_at": r[4],
+        "messages_count": int(r[5] or 0),
+        "last_message": r[6],
+    }
+
+
+def chat_session_delete(sid: str):
+    con = get_con()
+    con.execute("DELETE FROM chat_messages WHERE session_id = ?", [sid])
+    con.execute("DELETE FROM chat_sessions WHERE id = ?", [sid])
+
+
+def chat_sessions_count() -> int:
+    con = get_con()
+    return con.execute("SELECT COUNT(*) FROM chat_sessions").fetchone()[0]
+
+
+# ========================================================================
+# CHAT: Messages (user / assistant)
+# ========================================================================
+def chat_message_add(
+    sid: str, role: str, content: str,
+    tokens_used: int = 0, agentic_steps=None,
+) -> str:
+    """Satu pesan baru di session."""
+    con = get_con()
+    mid = str(uuid.uuid4())
+    import json
+    steps_json = json.dumps(agentic_steps, ensure_ascii=False) if agentic_steps else None
+    con.execute("""
+        INSERT INTO chat_messages (id, session_id, role, content, tokens_used, agentic_steps, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, current_timestamp)
+    """, [mid, sid, role, content, int(tokens_used or 0), steps_json])
+    con.execute(
+        "UPDATE chat_sessions SET updated_at = current_timestamp WHERE id = ?", [sid]
+    )
+    return mid
+
+
+def chat_messages_list(sid: str, limit: int | None = None, since_order: int | None = None) -> list:
+    """
+    Ambil semua pesan di satu session, ordered by created_at ASC.
+    - limit: hanya N pesan TERAKHIR (untuk context memory).
+    - since_order: reserved.
+    """
+    con = get_con()
+    import json
+    rows = con.execute("""
+        SELECT id, session_id, role, content, tokens_used, agentic_steps, created_at
+        FROM chat_messages
+        WHERE session_id = ?
+        ORDER BY created_at ASC
+    """, [sid]).fetchall()
+    out = []
+    for r in rows:
+        try:
+            steps = json.loads(r[5]) if r[5] else None
+        except Exception:
+            steps = None
+        out.append({
+            "id": r[0], "session_id": r[1], "role": r[2], "content": r[3],
+            "tokens_used": int(r[4] or 0), "agentic_steps": steps,
+            "created_at": r[6],
+        })
+    if limit:
+        return out[-int(limit):]
+    return out
+
+
+def chat_messages_count() -> int:
+    con = get_con()
+    return con.execute("SELECT COUNT(*) FROM chat_messages").fetchone()[0]
+
+
+# ========================================================================
+# COMPAT: chat_customers tabel existing user (tambahkan helper minimal)
+# ========================================================================
+def chat_customer_link(customer_id, summary=None):
+    """Insert / update ringkasan di chat_customers (backward compat)."""
+    con = get_con()
+    row = con.execute(
+        "SELECT id FROM chat_customers WHERE customer_id = ?", [customer_id]
+    ).fetchone()
+    if not summary:
+        summary = ""
+    import json as _j
+    summary = _j.dumps(summary, ensure_ascii=False) if not isinstance(summary, str) else summary
+    summary_emb = encode(summary[:1000]) if summary and len(summary) > 0 else None
+    if row:
+        con.execute("""
+            UPDATE chat_customers
+            SET chat_history = ?,
+                embedding = ?,
+                last_chat_time = current_timestamp
+            WHERE customer_id = ?
+        """, [summary, summary_emb, customer_id])
+        return row[0]
+    cid = str(uuid.uuid4())
+    con.execute("""
+        INSERT INTO chat_customers (id, customer_id, chat_history, embedding, last_chat_time, created_at)
+        VALUES (?, ?, ?, ?, current_timestamp, current_timestamp)
+    """, [cid, customer_id, summary, summary_emb])
+    return cid
